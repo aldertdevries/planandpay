@@ -66,6 +66,7 @@ const OberPoesDb = (() => {
         slotDuur: bestaand.slotDuur || 30,
         factuurRegels: bestaand.factuurRegels || [],
         mollieApiId: bestaand.mollieApiId || '',
+        blokkades: bestaand.blokkades || [],
       });
     },
     alleAfspraken() { return lees().afspraken; },
@@ -95,6 +96,7 @@ const OberPoesDb = (() => {
     zetOpeningstijden(code, openingstijden, slotDuur) {
       return this.wijzig(code, { openingstijden, slotDuur });
     },
+    zetBlokkades(code, blokkades) { return this.wijzig(code, { blokkades }); },
     zetFactuurRegels(code, regels) { return this.wijzig(code, { factuurRegels: regels }); },
     zetMollieApiId(code, id) { return this.wijzig(code, { mollieApiId: id }); },
     maakFactuur({ tenantCode, afspraakId, regels }) {

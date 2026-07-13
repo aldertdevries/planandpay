@@ -237,6 +237,50 @@ test('demo-data: actieve tenant heeft factuurregels en mollie-id', () => {
   assert(actief.factuurRegels.length === 2 && actief.mollieApiId === 'demo_mollie_123');
 });
 
+// --- Blokkades ---
+test('sloten: eenmalige blokkade alleen op eigen datum', () => {
+  const blok = [{ type: 'eenmalig', datum: '2026-07-13', van: '12:00', tot: '13:00' }];
+  const ma = Agenda.sloten(Agenda.standaardOpeningstijden(), 30, '2026-07-13', [], blok);
+  const di = Agenda.sloten(Agenda.standaardOpeningstijden(), 30, '2026-07-14', [], blok);
+  assert(ma.find((s) => s.tijd === '12:00').vrij === false);
+  assert(di.find((s) => s.tijd === '12:00').vrij === true);
+});
+test('sloten: overlap-randen bij blokkade 12:00-13:00', () => {
+  const blok = [{ type: 'eenmalig', datum: '2026-07-13', van: '12:00', tot: '13:00' }];
+  const s = Agenda.sloten(Agenda.standaardOpeningstijden(), 30, '2026-07-13', [], blok);
+  assert(s.find((x) => x.tijd === '11:30').vrij === true);
+  assert(s.find((x) => x.tijd === '12:00').vrij === false);
+  assert(s.find((x) => x.tijd === '12:30').vrij === false);
+  assert(s.find((x) => x.tijd === '13:00').vrij === true);
+});
+test('sloten: wekelijkse blokkade elke week op die dag', () => {
+  const blok = [{ type: 'wekelijks', dag: 'ma', van: '09:00', tot: '10:00' }];
+  const dezeWeek = Agenda.sloten(Agenda.standaardOpeningstijden(), 30, '2026-07-13', [], blok);
+  const volgendeWeek = Agenda.sloten(Agenda.standaardOpeningstijden(), 30, '2026-07-20', [], blok);
+  const dinsdag = Agenda.sloten(Agenda.standaardOpeningstijden(), 30, '2026-07-14', [], blok);
+  assert(dezeWeek.find((s) => s.tijd === '09:00').vrij === false);
+  assert(volgendeWeek.find((s) => s.tijd === '09:00').vrij === false);
+  assert(dinsdag.find((s) => s.tijd === '09:00').vrij === true);
+});
+test('actieveBlokkades: verlopen eenmalige weg, rest blijft', () => {
+  const blok = [
+    { type: 'eenmalig', datum: '2026-07-10', van: '09:00', tot: '10:00' },
+    { type: 'eenmalig', datum: '2026-07-20', van: '09:00', tot: '10:00' },
+    { type: 'wekelijks', dag: 'ma', van: '12:00', tot: '13:00' },
+  ];
+  const actief = Agenda.actieveBlokkades(blok, '2026-07-13');
+  assert(actief.length === 2);
+  assert(!actief.some((b) => b.datum === '2026-07-10'));
+});
+test('zetBlokkades en activeerTenant-default', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Blok BV' });
+  const na = OberPoesDb.activeerTenant(t.code);
+  assert(Array.isArray(na.blokkades) && na.blokkades.length === 0);
+  OberPoesDb.zetBlokkades(t.code, [{ id: 'B1', type: 'wekelijks', dag: 'ma', van: '12:00', tot: '13:00' }]);
+  assert(OberPoesDb.vindTenant(t.code).blokkades.length === 1);
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;

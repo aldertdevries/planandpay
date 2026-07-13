@@ -31,16 +31,24 @@ const Agenda = (() => {
       }
       return dagen;
     },
-    sloten(openingstijden, slotDuur, datumIso, afspraken) {
+    sloten(openingstijden, slotDuur, datumIso, afspraken, blokkades = []) {
       const dag = openingstijden[dagVan(datumIso)];
       if (!dag.open) return [];
       const bezet = new Set(afspraken.filter((a) => a.datum === datumIso).map((a) => a.tijd));
+      const geblokkeerd = blokkades.filter((b) =>
+        (b.type === 'eenmalig' && b.datum === datumIso)
+        || (b.type === 'wekelijks' && b.dag === dagVan(datumIso)));
       const uit = [];
       for (let m = naarMinuten(dag.van); m + slotDuur <= naarMinuten(dag.tot); m += slotDuur) {
         const tijd = naarTijd(m);
-        uit.push({ tijd, vrij: !bezet.has(tijd) });
+        const inBlokkade = geblokkeerd.some((b) =>
+          m < naarMinuten(b.tot) && m + slotDuur > naarMinuten(b.van));
+        uit.push({ tijd, vrij: !bezet.has(tijd) && !inBlokkade });
       }
       return uit;
+    },
+    actieveBlokkades(blokkades, vanafIso) {
+      return blokkades.filter((b) => b.type === 'wekelijks' || b.datum >= vanafIso);
     },
   };
 })();
