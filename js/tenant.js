@@ -90,6 +90,10 @@
   el('afspraakformulier').addEventListener('submit', (e) => {
     e.preventDefault();
     zetFout('boeking', '');
+    if (!gekozenDatum || !gekozenTijd) {
+      zetFout('boeking', 'Kies eerst een dag en tijd.');
+      return;
+    }
     let ok = true;
     Object.entries(veldRegels).forEach(([id, [regel, melding]]) => {
       const geldig = regel(el(id).value);
