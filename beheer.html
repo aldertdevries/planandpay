@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beheer</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <span class="logo" id="kop-naam">🐾 Beheer</span>
+      <nav id="beheer-menu" class="verborgen">
+        <a href="#" id="menu-agenda" class="actief">Agenda</a>
+        <a href="#" id="menu-tijden">Openingstijden</a>
+        <a href="#" id="menu-profiel">Profiel</a>
+        <a href="#" id="menu-uitloggen">Uitloggen</a>
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    <div class="kaart verborgen" id="niet-beschikbaar">
+      <h2>Deze pagina is niet beschikbaar</h2>
+      <p>Controleer of de link klopt.</p>
+    </div>
+
+    <div class="kaart verborgen" id="login-kaart" style="max-width: 420px; margin: 3rem auto;">
+      <h2>Beheer — inloggen</h2>
+      <div class="veld">
+        <label for="wachtwoord">Wachtwoord</label>
+        <input id="wachtwoord" type="password" autocomplete="current-password">
+      </div>
+      <span class="fout" id="fout-login"></span>
+      <button class="knop" id="knop-login">Inloggen</button>
+    </div>
+
+    <div id="beheer-app" class="verborgen">
+      <div id="view-agenda"></div>
+      <div id="view-tijden" class="verborgen"></div>
+      <div id="view-profiel" class="verborgen"></div>
+    </div>
+  </main>
+  <footer class="site-footer">mogelijk gemaakt door OberPoes</footer>
+  <script src="js/validatie.js"></script>
+  <script src="js/agenda.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/beheer.js"></script>
+</body>
+</html>
