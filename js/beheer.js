@@ -141,10 +141,16 @@
     el('knop-naar-lijst').addEventListener('click', () => { agendaWeergave = 'lijst'; renderAgenda(); });
   }
 
+  let agendaZoek = '';
+  let agendaPagina = 1;
+
   function renderAgendaLijst() {
-    const afspraken = OberPoesDb.afsprakenVoor(code)
+    const alleAfspraken = OberPoesDb.afsprakenVoor(code)
       .slice()
       .sort((a, b) => (a.datum + a.tijd).localeCompare(b.datum + b.tijd));
+    const pagina = Lijst.filterEnPagineer(alleAfspraken, agendaZoek, ['naam', 'datum'], agendaPagina);
+    agendaPagina = pagina.pagina;
+    const afspraken = pagina.items;
     const rijen = afspraken.map((a) => `
       <tr>
         <td><strong>${a.datum}</strong><br>${a.tijd}</td>
@@ -160,13 +166,32 @@
       <div class="kaart">
         <h2>Agenda</h2>
         <p><button class="knop knop-secundair knop-klein" id="knop-naar-week">Weekweergave</button></p>
-        ${afspraken.length === 0 ? '<p>Er zijn nog geen afspraken.</p>' : `
+        <div class="veld" style="max-width: 260px;">
+          <label for="zoek-agenda">Zoeken (naam of datum)</label>
+          <input id="zoek-agenda" type="search" value="${agendaZoek}">
+        </div>
+        ${afspraken.length === 0 ? '<p>Geen afspraken gevonden.</p>' : `
         <table class="tabel">
-          <thead><tr><th>Wanneer</th><th>Klant</th><th>Adres</th><th>Contact</th><th></th></tr></thead>
+          <thead><tr><th scope="col">Wanneer</th><th scope="col">Klant</th><th scope="col">Adres</th><th scope="col">Contact</th><th scope="col"></th></tr></thead>
           <tbody>${rijen}</tbody>
         </table>`}
+        <p>
+          <button class="knop knop-secundair knop-klein" id="agenda-vorige" ${pagina.pagina <= 1 ? 'disabled' : ''}>‹ Vorige</button>
+          pagina ${pagina.pagina} van ${pagina.paginas} (${pagina.totaal} afspraken)
+          <button class="knop knop-secundair knop-klein" id="agenda-volgende" ${pagina.pagina >= pagina.paginas ? 'disabled' : ''}>Volgende ›</button>
+        </p>
       </div>
       <div id="factuur-opbouw"></div>`;
+    el('zoek-agenda').addEventListener('input', (e) => {
+      agendaZoek = e.target.value;
+      agendaPagina = 1;
+      renderAgendaLijst();
+      const veld = el('zoek-agenda');
+      veld.focus();
+      veld.setSelectionRange(agendaZoek.length, agendaZoek.length);
+    });
+    el('agenda-vorige').addEventListener('click', () => { agendaPagina--; renderAgendaLijst(); });
+    el('agenda-volgende').addEventListener('click', () => { agendaPagina++; renderAgendaLijst(); });
     el('view-agenda').querySelectorAll('button[data-id]').forEach((k) => {
       k.addEventListener('click', () => {
         OberPoesDb.annuleerAfspraak(k.dataset.id);
@@ -383,17 +408,23 @@
 
   // --- Facturen ---
   let facturenFilter = 'Alle';
+  let facturenZoek = '';
+  let facturenPagina = 1;
 
   function renderFacturen() {
     const alle = OberPoesDb.facturenVoor(code);
-    const lijst = facturenFilter === 'Alle' ? alle : alle.filter((f) => f.status === facturenFilter);
-    const opties = ['Alle', 'Open', 'Betaald']
+    const basis = facturenFilter === 'Alle' ? alle : alle.filter((f) => f.status === facturenFilter);
+    const pagina = Lijst.filterEnPagineer(basis, facturenZoek, ['nummer', 'klantNaam'], facturenPagina);
+    facturenPagina = pagina.pagina;
+    const lijst = pagina.items;
+    const opties = ['Alle', 'Open', 'Betaald', 'Gecrediteerd', 'Vervallen', 'Credit']
       .map((s) => `<option ${s === facturenFilter ? 'selected' : ''}>${s}</option>`).join('');
-    const statusBadge = (s) =>
-      `<span class="badge ${s === 'Betaald' ? 'badge-actief' : 'badge-aangevraagd'}">${s}</span>`;
+    const badgeKlasse = { Open: 'badge-aangevraagd', Betaald: 'badge-actief',
+      Vervallen: 'badge-inactief', Gecrediteerd: 'badge-afgewezen', Credit: 'badge-inactief' };
+    const statusBadge = (s) => `<span class="badge ${badgeKlasse[s]}">${s}</span>`;
     const rijen = lijst.map((f) => `
       <tr>
-        <td><strong>${f.nummer}</strong></td>
+        <td><strong>${f.nummer}</strong>${f.creditVoor ? `<br><small>credit voor ${f.creditVoor}</small>` : ''}</td>
         <td>${new Date(f.gemaaktOp).toLocaleDateString('nl-NL')}</td>
         <td>${f.klantNaam}</td>
         <td>${Facturatie.euro(Facturatie.totalen(f.regels).inclCent)}</td>
@@ -401,26 +432,56 @@
         <td>
           <a class="knop knop-secundair knop-klein" href="factuur.html?id=${f.id}" target="_blank">Factuur</a>
           <a class="knop knop-secundair knop-klein" href="betaal.html?factuur=${f.id}" target="_blank">Betaalpagina</a>
+          ${['Open', 'Betaald'].includes(f.status)
+            ? `<button class="knop knop-secundair knop-klein" data-crediteer="${f.id}">Crediteren</button>` : ''}
+          ${f.status === 'Open'
+            ? `<button class="knop knop-gevaar knop-klein" data-vervallen="${f.id}">Vervallen</button>` : ''}
         </td>
       </tr>`).join('');
     el('view-facturen').innerHTML = `
       <div class="kaart">
         <h2>Facturen</h2>
-        <div class="veld" style="max-width: 220px;">
-          <label for="filter-factuurstatus">Filter op status</label>
-          <select id="filter-factuurstatus">${opties}</select>
+        <div class="velden-rij" style="max-width: 520px;">
+          <div class="veld">
+            <label for="filter-factuurstatus">Filter op status</label>
+            <select id="filter-factuurstatus">${opties}</select>
+          </div>
+          <div class="veld">
+            <label for="zoek-facturen">Zoeken (nummer of klant)</label>
+            <input id="zoek-facturen" type="search" value="${facturenZoek}">
+          </div>
         </div>
         ${lijst.length === 0 ? '<p>Geen facturen gevonden.</p>' : `
         <table class="tabel">
-          <thead><tr><th>Nummer</th><th>Datum</th><th>Klant</th><th>Bedrag</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th scope="col">Nummer</th><th scope="col">Datum</th><th scope="col">Klant</th><th scope="col">Bedrag</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
           <tbody>${rijen}</tbody>
         </table>
         <p><small>De betaalstatus wordt (in de demo) afgeleid van de Mollie-betaalpagina.</small></p>`}
+        <p>
+          <button class="knop knop-secundair knop-klein" id="facturen-vorige" ${pagina.pagina <= 1 ? 'disabled' : ''}>‹ Vorige</button>
+          pagina ${pagina.pagina} van ${pagina.paginas} (${pagina.totaal} facturen)
+          <button class="knop knop-secundair knop-klein" id="facturen-volgende" ${pagina.pagina >= pagina.paginas ? 'disabled' : ''}>Volgende ›</button>
+        </p>
       </div>`;
     el('filter-factuurstatus').addEventListener('change', (e) => {
       facturenFilter = e.target.value;
+      facturenPagina = 1;
       renderFacturen();
     });
+    el('zoek-facturen').addEventListener('input', (e) => {
+      facturenZoek = e.target.value;
+      facturenPagina = 1;
+      renderFacturen();
+      const veld = el('zoek-facturen');
+      veld.focus();
+      veld.setSelectionRange(facturenZoek.length, facturenZoek.length);
+    });
+    el('facturen-vorige').addEventListener('click', () => { facturenPagina--; renderFacturen(); });
+    el('facturen-volgende').addEventListener('click', () => { facturenPagina++; renderFacturen(); });
+    el('view-facturen').querySelectorAll('button[data-crediteer]').forEach((k) =>
+      k.addEventListener('click', () => { OberPoesDb.crediteerFactuur(k.dataset.crediteer); renderFacturen(); }));
+    el('view-facturen').querySelectorAll('button[data-vervallen]').forEach((k) =>
+      k.addEventListener('click', () => { OberPoesDb.laatVervallen(k.dataset.vervallen); renderFacturen(); }));
   }
 
   // --- Openingstijden ---
@@ -584,7 +645,16 @@
           <input id="mollie-id" type="text" value="${t.mollieApiId || ''}" placeholder="bijv. live_AbC123">
         </div>
         <button class="knop" id="knop-mollie-opslaan">Mollie-id opslaan</button>
-        <span class="melding melding-goed verborgen" id="mollie-opgeslagen">Opgeslagen.</span>
+        <span class="melding melding-goed verborgen" id="mollie-opgeslagen" role="status">Opgeslagen.</span>
+        <div class="velden-rij" style="margin-top: 1rem; max-width: 480px;">
+          <div class="veld"><label for="reeks-prefix">Factuurreeks — prefix</label>
+            <input id="reeks-prefix" type="text" value="${(t.factuurReeks && t.factuurReeks.prefix) || new Date().getFullYear()}"></div>
+          <div class="veld"><label for="reeks-volgende">Volgend nummer</label>
+            <input id="reeks-volgende" type="number" min="1" value="${(t.factuurReeks && t.factuurReeks.volgende) || 1}"></div>
+        </div>
+        <span class="fout" id="fout-reeks" aria-live="polite"></span>
+        <button class="knop" id="knop-reeks-opslaan">Reeks opslaan</button>
+        <span class="melding melding-goed verborgen" id="reeks-opgeslagen" role="status">Opgeslagen.</span>
       </div>`;
     el('knop-kopieer').addEventListener('click', async () => {
       const veld = el('boek-link');
@@ -596,6 +666,17 @@
     el('knop-mollie-opslaan').addEventListener('click', () => {
       OberPoesDb.zetMollieApiId(code, el('mollie-id').value.trim());
       el('mollie-opgeslagen').classList.remove('verborgen');
+    });
+    el('knop-reeks-opslaan').addEventListener('click', () => {
+      const prefix = el('reeks-prefix').value.trim();
+      const volgende = parseInt(el('reeks-volgende').value, 10);
+      if (!prefix || !Number.isInteger(volgende) || volgende < 1) {
+        el('fout-reeks').textContent = 'Vul een prefix en een volgnummer van minimaal 1 in.';
+        return;
+      }
+      el('fout-reeks').textContent = '';
+      OberPoesDb.zetFactuurReeks(code, prefix, volgende);
+      el('reeks-opgeslagen').classList.remove('verborgen');
     });
   }
 

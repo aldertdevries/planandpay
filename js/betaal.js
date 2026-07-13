@@ -22,7 +22,14 @@
     el('b-open').classList.add('verborgen');
     el('b-betaald').classList.remove('verborgen');
   }
-  if (factuur.status === 'Betaald') toonBetaald();
+  if (factuur.status === 'Betaald') {
+    toonBetaald();
+  } else if (factuur.status !== 'Open') {
+    el('b-open').classList.add('verborgen');
+    el('b-betaald').classList.remove('verborgen');
+    el('b-betaald').querySelector('.melding').textContent =
+      `Deze factuur heeft status ${factuur.status} en kan niet betaald worden.`;
+  }
 
   el('knop-betaal').addEventListener('click', () => {
     OberPoesDb.zetFactuurStatus(factuur.id, 'Betaald');
