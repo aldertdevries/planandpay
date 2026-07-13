@@ -79,7 +79,69 @@
   });
 
   // --- Agenda ---
+  let agendaWeergave = 'lijst';
+  let weekStart = Agenda.maandagVan(new Date().toISOString().slice(0, 10));
+  const datumPlus = (iso, n) => {
+    const d = new Date(iso + 'T12:00:00');
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+
   function renderAgenda() {
+    if (agendaWeergave === 'week') {
+      renderWeek();
+      return;
+    }
+    renderAgendaLijst();
+  }
+
+  function renderWeek() {
+    const t = huidigeTenant();
+    const duur = t.slotDuur || 30;
+    const dagen = Array.from({ length: 7 }, (_, i) => datumPlus(weekStart, i));
+    const afspraken = OberPoesDb.afsprakenVoor(code);
+    const perDag = {};
+    dagen.forEach((iso) => {
+      perDag[iso] = Agenda.sloten(t.openingstijden, duur, iso, [], t.blokkades || []);
+    });
+    const alleTijden = [...new Set(dagen.flatMap((iso) => perDag[iso].map((s) => s.tijd)))].sort();
+    const kop = dagen.map((iso) => {
+      const d = new Date(iso + 'T12:00:00');
+      return `<th scope="col">${Agenda.DAG_NAMEN[d.getDay()].slice(0, 2)} ${d.getDate()}/${d.getMonth() + 1}</th>`;
+    }).join('');
+    const rijen = alleTijden.map((tijd) => `
+      <tr><th scope="row">${tijd}</th>${dagen.map((iso) => {
+        const slot = perDag[iso].find((s) => s.tijd === tijd);
+        if (!slot) return '<td style="background:#f0eef8"></td>';
+        if (!slot.vrij) return '<td style="background:#e3e0ef" title="geblokkeerd">✕</td>';
+        const namen = afspraken.filter((a) => a.datum === iso && a.tijd === tijd).map((a) => a.naam);
+        return `<td>${namen.join('<br>')}</td>`;
+      }).join('')}</tr>`).join('');
+    el('view-agenda').innerHTML = `
+      <div class="kaart">
+        <h2>Agenda — week van ${new Date(weekStart + 'T12:00:00').toLocaleDateString('nl-NL')}</h2>
+        <p>
+          <button class="knop knop-secundair knop-klein" id="knop-week-terug">← Vorige</button>
+          <button class="knop knop-secundair knop-klein" id="knop-week-vandaag">Vandaag</button>
+          <button class="knop knop-secundair knop-klein" id="knop-week-verder">Volgende →</button>
+          <button class="knop knop-secundair knop-klein" id="knop-naar-lijst">Lijstweergave</button>
+        </p>
+        <table class="tabel">
+          <thead><tr><th scope="col">Tijd</th>${kop}</tr></thead>
+          <tbody>${rijen}</tbody>
+        </table>
+      </div>
+      <div id="factuur-opbouw"></div>`;
+    el('knop-week-terug').addEventListener('click', () => { weekStart = datumPlus(weekStart, -7); renderWeek(); });
+    el('knop-week-verder').addEventListener('click', () => { weekStart = datumPlus(weekStart, 7); renderWeek(); });
+    el('knop-week-vandaag').addEventListener('click', () => {
+      weekStart = Agenda.maandagVan(new Date().toISOString().slice(0, 10));
+      renderWeek();
+    });
+    el('knop-naar-lijst').addEventListener('click', () => { agendaWeergave = 'lijst'; renderAgenda(); });
+  }
+
+  function renderAgendaLijst() {
     const afspraken = OberPoesDb.afsprakenVoor(code)
       .slice()
       .sort((a, b) => (a.datum + a.tijd).localeCompare(b.datum + b.tijd));
@@ -97,6 +159,7 @@
     el('view-agenda').innerHTML = `
       <div class="kaart">
         <h2>Agenda</h2>
+        <p><button class="knop knop-secundair knop-klein" id="knop-naar-week">Weekweergave</button></p>
         ${afspraken.length === 0 ? '<p>Er zijn nog geen afspraken.</p>' : `
         <table class="tabel">
           <thead><tr><th>Wanneer</th><th>Klant</th><th>Adres</th><th>Contact</th><th></th></tr></thead>
@@ -112,6 +175,10 @@
     });
     el('view-agenda').querySelectorAll('button[data-factureer]').forEach((k) => {
       k.addEventListener('click', () => renderFactuurOpbouw(k.dataset.factureer));
+    });
+    el('knop-naar-week').addEventListener('click', () => {
+      agendaWeergave = 'week';
+      renderAgenda();
     });
   }
 
@@ -368,7 +435,9 @@
         <td>${b.omschrijving || '—'}</td>
         <td>${b.type === 'wekelijks'
           ? 'wekelijks ' + Agenda.DAG_NAMEN[Agenda.DAG_SLEUTELS.indexOf(b.dag)]
-          : new Date(b.datum + 'T12:00:00').toLocaleDateString('nl-NL')} ${b.van}–${b.tot}</td>
+          : new Date(b.datum + 'T12:00:00').toLocaleDateString('nl-NL')
+            + (b.datumTot && b.datumTot !== b.datum
+              ? ' t/m ' + new Date(b.datumTot + 'T12:00:00').toLocaleDateString('nl-NL') : '')} ${b.van}–${b.tot}</td>
         <td><button class="knop knop-gevaar knop-klein" data-blok-weg="${b.id}">Verwijderen</button></td>
       </tr>`).join('');
     const rijen = Agenda.DAG_SLEUTELS.map((dag, i) => {
@@ -389,9 +458,16 @@
           <thead><tr><th>Dag</th><th>Van</th><th>Tot</th></tr></thead>
           <tbody>${rijen}</tbody>
         </table>
-        <div class="veld" style="max-width: 220px; margin-top: 1rem;">
-          <label for="slot-duur">Duur per afspraak</label>
-          <select id="slot-duur">${duurOpties}</select>
+        <div class="velden-rij" style="max-width: 480px; margin-top: 1rem;">
+          <div class="veld">
+            <label for="slot-duur">Duur per afspraak</label>
+            <select id="slot-duur">${duurOpties}</select>
+          </div>
+          <div class="veld">
+            <label for="capaciteit">Afspraken tegelijk per tijdslot</label>
+            <select id="capaciteit">${[1, 2, 3, 4, 5].map((n) =>
+              `<option ${n === (t.capaciteit || 1) ? 'selected' : ''}>${n}</option>`).join('')}</select>
+          </div>
         </div>
         <button class="knop" id="knop-tijden-opslaan">Opslaan</button>
         <span class="melding melding-goed verborgen" id="tijden-opgeslagen">Opgeslagen.</span>
@@ -409,6 +485,8 @@
             <select id="blok-type"><option value="eenmalig">Eenmalig</option><option value="wekelijks">Wekelijks</option></select></div>
           <div class="veld" id="blok-datum-veld"><label for="blok-datum">Datum</label>
             <input id="blok-datum" type="date"></div>
+          <div class="veld" id="blok-datum-tot-veld"><label for="blok-datum-tot">T/m (optioneel)</label>
+            <input id="blok-datum-tot" type="date"></div>
           <div class="veld verborgen" id="blok-dag-veld"><label for="blok-dag">Weekdag</label>
             <select id="blok-dag">${dagOpties}</select></div>
           <div class="veld"><label for="blok-van">Van</label><input id="blok-van" type="time" value="12:00"></div>
@@ -428,12 +506,14 @@
           tot: el('tot-' + dag).value || '17:00',
         };
       });
-      OberPoesDb.zetOpeningstijden(code, nieuw, Number(el('slot-duur').value));
+      OberPoesDb.zetOpeningstijden(code, nieuw, Number(el('slot-duur').value),
+        Number(el('capaciteit').value));
       el('tijden-opgeslagen').classList.remove('verborgen');
     });
     el('blok-type').addEventListener('change', () => {
       const wekelijks = el('blok-type').value === 'wekelijks';
       el('blok-datum-veld').classList.toggle('verborgen', wekelijks);
+      el('blok-datum-tot-veld').classList.toggle('verborgen', wekelijks);
       el('blok-dag-veld').classList.toggle('verborgen', !wekelijks);
     });
     el('view-tijden').querySelectorAll('button[data-blok-weg]').forEach((k) => {
@@ -456,13 +536,22 @@
         el('fout-blok').textContent = 'Kies een datum voor een eenmalige periode.';
         return;
       }
+      const datumTot = el('blok-datum-tot').value;
+      if (type === 'eenmalig' && datumTot && datumTot < datum) {
+        el('fout-blok').textContent = 'De t/m-datum moet op of na de startdatum liggen.';
+        return;
+      }
       const blokkade = {
         id: OberPoesDb.genereerCode(),
         type, van, tot,
         omschrijving: el('blok-omschrijving').value.trim(),
       };
-      if (type === 'eenmalig') blokkade.datum = datum;
-      else blokkade.dag = el('blok-dag').value;
+      if (type === 'eenmalig') {
+        blokkade.datum = datum;
+        if (datumTot) blokkade.datumTot = datumTot;
+      } else {
+        blokkade.dag = el('blok-dag').value;
+      }
       OberPoesDb.zetBlokkades(code, [...(huidigeTenant().blokkades || []), blokkade]);
       renderTijden();
     });
