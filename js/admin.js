@@ -81,8 +81,8 @@
       </div>`;
     el('view-aanvragen').querySelectorAll('button[data-actie]').forEach((knop) => {
       knop.addEventListener('click', () => {
-        const nieuwe = knop.dataset.actie === 'goedkeuren' ? 'Actief' : 'Afgewezen';
-        OberPoesDb.zetStatus(knop.dataset.code, nieuwe);
+        if (knop.dataset.actie === 'goedkeuren') OberPoesDb.activeerTenant(knop.dataset.code);
+        else OberPoesDb.zetStatus(knop.dataset.code, 'Afgewezen');
         renderAanvragen();
       });
     });
@@ -149,6 +149,13 @@
     el('tenant-detail').innerHTML = `
       <div class="kaart">
         <h2>${t.naam} <span class="demo-code">${t.code}</span></h2>
+        ${t.status === 'Actief' ? `
+        <div class="melding melding-info">
+          <strong>Portalen</strong><br>
+          Boekingspagina: <a href="tenant.html?code=${t.code}" target="_blank">tenant.html?code=${t.code}</a><br>
+          Beheer: <a href="beheer.html?code=${t.code}" target="_blank">beheer.html?code=${t.code}</a><br>
+          Beheerwachtwoord: <span class="demo-code">${t.beheerWachtwoord}</span>
+        </div>` : ''}
         <div class="velden-rij">
           <img src="${t.logo}" alt="Logo" class="logo-preview">
           <div style="flex:1">
@@ -203,6 +210,7 @@
         telefoon: el('bewerk-telefoon').value.trim(),
         status: el('bewerk-status').value,
       });
+      if (el('bewerk-status').value === 'Actief') OberPoesDb.activeerTenant(t.code);
       el('tenant-detail').innerHTML = '';
       renderTenants();
     });
