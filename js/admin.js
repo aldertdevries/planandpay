@@ -18,7 +18,7 @@
     el('login-kaart').classList.add('verborgen');
     el('admin-app').classList.remove('verborgen');
     el('admin-menu').classList.remove('verborgen');
-    toonView('aanvragen');
+    toonView('dashboard');
   }
 
   el('knop-login').addEventListener('click', () => {
@@ -43,15 +43,51 @@
 
   // --- Views ---
   function toonView(naam) {
-    el('view-aanvragen').classList.toggle('verborgen', naam !== 'aanvragen');
-    el('view-tenants').classList.toggle('verborgen', naam !== 'tenants');
-    el('menu-aanvragen').classList.toggle('actief', naam === 'aanvragen');
-    el('menu-tenants').classList.toggle('actief', naam === 'tenants');
+    ['dashboard', 'aanvragen', 'tenants'].forEach((v) => {
+      el('view-' + v).classList.toggle('verborgen', v !== naam);
+      el('menu-' + v).classList.toggle('actief', v === naam);
+      el('menu-' + v).setAttribute('aria-current', v === naam ? 'page' : 'false');
+    });
+    const open = OberPoesDb.alleTenants().filter((t) => t.status === 'Aangevraagd').length;
+    el('menu-aanvragen').textContent = open > 0 ? `Aanvragen (${open})` : 'Aanvragen';
+    if (naam === 'dashboard') renderDashboard();
     if (naam === 'aanvragen') renderAanvragen();
     if (naam === 'tenants') renderTenants();
   }
-  el('menu-aanvragen').addEventListener('click', (e) => { e.preventDefault(); toonView('aanvragen'); });
-  el('menu-tenants').addEventListener('click', (e) => { e.preventDefault(); toonView('tenants'); });
+  ['dashboard', 'aanvragen', 'tenants'].forEach((v) => {
+    el('menu-' + v).addEventListener('click', (e) => { e.preventDefault(); toonView(v); });
+  });
+
+  // --- Dashboard ---
+  function renderDashboard() {
+    const tenants = OberPoesDb.alleTenants();
+    const facturen = tenants.flatMap((t) => OberPoesDb.facturenVoor(t.code));
+    const perStatus = (s) => tenants.filter((t) => t.status === s).length;
+    const tegel = (label, waarde) =>
+      `<div class="kaart" style="flex:1; text-align:center; margin:0;">
+        <div style="font-size:2rem; font-weight:700; color:var(--paars-donker)">${waarde}</div>${label}</div>`;
+    const aanvragen = tenants.filter((t) => t.status === 'Aangevraagd');
+    el('view-dashboard').innerHTML = `
+      <div class="kaart"><h2>Dashboard</h2>
+        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+          ${tegel('Aangevraagd', perStatus('Aangevraagd'))}
+          ${tegel('Actief', perStatus('Actief'))}
+          ${tegel('Inactief', perStatus('Inactief'))}
+          ${tegel('Afgewezen', perStatus('Afgewezen'))}
+          ${tegel('Afspraken', OberPoesDb.alleAfspraken().length)}
+          ${tegel('Facturen (open/betaald)',
+            `${facturen.filter((f) => f.status === 'Open').length}/${facturen.filter((f) => f.status === 'Betaald').length}`)}
+        </div>
+      </div>
+      <div class="kaart"><h2>Postvak (gesimuleerd)</h2>
+        ${aanvragen.length === 0 ? '<p>Geen nieuwe notificaties.</p>'
+          : aanvragen.map((t) =>
+            `<p role="status">📧 Nieuwe aanvraag van <strong>${t.naam}</strong> — ${new Date(t.aangevraagdOp).toLocaleDateString('nl-NL')}
+             <a href="#" class="naar-aanvragen">bekijk</a></p>`).join('')}
+      </div>`;
+    el('view-dashboard').querySelectorAll('.naar-aanvragen').forEach((a) =>
+      a.addEventListener('click', (e) => { e.preventDefault(); toonView('aanvragen'); }));
+  }
 
   // --- Aanvragen ---
   function renderAanvragen() {
@@ -95,11 +131,16 @@
 
   // --- Tenants ---
   let tenantsFilter = 'Alle';
+  let tenantsZoek = '';
+  let tenantsPagina = 1;
 
   function renderTenants() {
     const alle = OberPoesDb.alleTenants();
-    const lijst = tenantsFilter === 'Alle'
+    const basis = tenantsFilter === 'Alle'
       ? alle : alle.filter((t) => t.status === tenantsFilter);
+    const pagina = Lijst.filterEnPagineer(basis, tenantsZoek, ['naam', 'code', 'plaats'], tenantsPagina);
+    tenantsPagina = pagina.pagina;
+    const lijst = pagina.items;
     const opties = ['Alle', 'Aangevraagd', 'Afgewezen', 'Actief', 'Inactief']
       .map((s) => `<option ${s === tenantsFilter ? 'selected' : ''}>${s}</option>`).join('');
     const rijen = lijst.map((t) => `
@@ -114,22 +155,44 @@
     el('view-tenants').innerHTML = `
       <div class="kaart">
         <h2>Tenants</h2>
-        <div class="veld" style="max-width: 220px;">
-          <label for="filter-status">Filter op status</label>
-          <select id="filter-status">${opties}</select>
+        <div class="velden-rij" style="max-width: 520px;">
+          <div class="veld">
+            <label for="filter-status">Filter op status</label>
+            <select id="filter-status">${opties}</select>
+          </div>
+          <div class="veld">
+            <label for="zoek-tenants">Zoeken (naam, code of plaats)</label>
+            <input id="zoek-tenants" type="search" value="${tenantsZoek}">
+          </div>
         </div>
         ${lijst.length === 0 ? '<p>Geen tenants gevonden.</p>' : `
         <table class="tabel">
-          <thead><tr><th>Logo</th><th>Organisatie</th><th>Code</th><th>Status</th><th>Plaats</th><th>Aangevraagd</th></tr></thead>
+          <thead><tr><th scope="col">Logo</th><th scope="col">Organisatie</th><th scope="col">Code</th><th scope="col">Status</th><th scope="col">Plaats</th><th scope="col">Aangevraagd</th></tr></thead>
           <tbody>${rijen}</tbody>
         </table>
         <p><small>Klik op een rij om de gegevens in te zien of te wijzigen.</small></p>`}
+        <p>
+          <button class="knop knop-secundair knop-klein" id="tenants-vorige" ${pagina.pagina <= 1 ? 'disabled' : ''}>‹ Vorige</button>
+          pagina ${pagina.pagina} van ${pagina.paginas} (${pagina.totaal} tenants)
+          <button class="knop knop-secundair knop-klein" id="tenants-volgende" ${pagina.pagina >= pagina.paginas ? 'disabled' : ''}>Volgende ›</button>
+        </p>
       </div>
       <div id="tenant-detail"></div>`;
     el('filter-status').addEventListener('change', (e) => {
       tenantsFilter = e.target.value;
+      tenantsPagina = 1;
       renderTenants();
     });
+    el('zoek-tenants').addEventListener('input', (e) => {
+      tenantsZoek = e.target.value;
+      tenantsPagina = 1;
+      renderTenants();
+      const veld = el('zoek-tenants');
+      veld.focus();
+      veld.setSelectionRange(tenantsZoek.length, tenantsZoek.length);
+    });
+    el('tenants-vorige').addEventListener('click', () => { tenantsPagina--; renderTenants(); });
+    el('tenants-volgende').addEventListener('click', () => { tenantsPagina++; renderTenants(); });
     el('view-tenants').querySelectorAll('tr.klikbaar').forEach((rij) => {
       rij.addEventListener('click', () => renderTenantDetail(rij.dataset.code));
     });
