@@ -24,7 +24,7 @@ globalThis.document = {
   getElementById: () => null,
 };
 
-const bron = ['js/validatie.js', 'js/agenda.js', 'js/db.js', 'js/tests.js']
+const bron = ['js/validatie.js', 'js/agenda.js', 'js/facturatie.js', 'js/db.js', 'js/tests.js']
   .map((bestand) => readFileSync(join(root, bestand), 'utf8'))
   .join('\n');
 (0, eval)(bron);

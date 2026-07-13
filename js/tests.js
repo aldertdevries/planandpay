@@ -161,6 +161,27 @@ test('maskeer: e-mail en telefoon', () => {
   assert(Maskeer.telefoon('06-1234 5678') === '06······78');
 });
 
+// --- Facturatie: rekenwerk ---
+test('totalen: alleen hoog', () => {
+  const t = Facturatie.totalen([{ naam: 'A', btw: 'hoog', bedragCent: 12100 }]);
+  assert(t.inclCent === 12100 && t.btwHoogCent === 2100 && t.btwLaagCent === 0 && t.exclCent === 10000);
+});
+test('totalen: alleen laag', () => {
+  const t = Facturatie.totalen([{ naam: 'B', btw: 'laag', bedragCent: 10900 }]);
+  assert(t.inclCent === 10900 && t.btwLaagCent === 900 && t.btwHoogCent === 0 && t.exclCent === 10000);
+});
+test('totalen: gemengd met afronding per regel', () => {
+  const t = Facturatie.totalen([
+    { naam: 'A', btw: 'hoog', bedragCent: 999 },
+    { naam: 'B', btw: 'laag', bedragCent: 555 },
+  ]);
+  assert(t.inclCent === 1554 && t.btwHoogCent === 173 && t.btwLaagCent === 46);
+  assert(t.exclCent === 1554 - 173 - 46);
+});
+test('euro-notatie', () => {
+  assert(Facturatie.euro(1234) === '€ 12,34', 'kreeg: ' + Facturatie.euro(1234));
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;
