@@ -101,6 +101,59 @@ test('sloten: 60 min duur geeft 8 sloten', () => {
   assert(Agenda.sloten(Agenda.standaardOpeningstijden(), 60, '2026-07-13', []).length === 8);
 });
 
+// --- Afspraken en activering ---
+test('migratie: oude database zonder afspraken-veld werkt', () => {
+  localStorage.setItem('oberpoes_db', JSON.stringify({ tenants: [] }));
+  assert(Array.isArray(OberPoesDb.alleAfspraken()));
+});
+test('activeerTenant: zet status, wachtwoord en defaults; idempotent', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Activeer BV' });
+  const na = OberPoesDb.activeerTenant(t.code);
+  assert(na.status === 'Actief');
+  assert(/^[a-z2-9]{8}$/.test(na.beheerWachtwoord), 'wachtwoord: ' + na.beheerWachtwoord);
+  assert(na.openingstijden.ma.open === true && na.slotDuur === 30);
+  const tweede = OberPoesDb.activeerTenant(t.code);
+  assert(tweede.beheerWachtwoord === na.beheerWachtwoord, 'wachtwoord mag niet wijzigen');
+});
+test('maakAfspraak: slaat op en weigert dubbelboeking', () => {
+  const t = OberPoesDb.alleTenants()[0];
+  const a = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '10:00', naam: 'Jan' });
+  assert(a && a.id && a.gemaaktOp);
+  const dubbel = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '10:00', naam: 'Piet' });
+  assert(dubbel === null);
+});
+test('afsprakenVoor: alleen eigen tenant, case-insensitive', () => {
+  const t1 = OberPoesDb.alleTenants()[0];
+  const t2 = OberPoesDb.voegToe({ naam: 'Andere BV' });
+  OberPoesDb.maakAfspraak({ tenantCode: t2.code, datum: '2026-07-14', tijd: '10:00', naam: 'Ander' });
+  assert(OberPoesDb.afsprakenVoor(t1.code.toLowerCase()).length === 1);
+  assert(OberPoesDb.afsprakenVoor(t2.code).length === 1);
+  assert(OberPoesDb.afsprakenVoor(t1.code)[0].naam === 'Jan');
+});
+test('annuleerAfspraak: verwijdert en geeft slot vrij', () => {
+  const t = OberPoesDb.alleTenants()[0];
+  const a = OberPoesDb.afsprakenVoor(t.code)[0];
+  assert(OberPoesDb.annuleerAfspraak(a.id) === true);
+  assert(OberPoesDb.annuleerAfspraak(a.id) === false, 'tweede keer false');
+  const opnieuw = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '10:00', naam: 'Weer' });
+  assert(opnieuw !== null, 'slot moet weer vrij zijn');
+});
+test('zetOpeningstijden: wijzigt tijden en slotduur', () => {
+  const t = OberPoesDb.alleTenants()[0];
+  const tijden = Agenda.standaardOpeningstijden();
+  tijden.za = { open: true, van: '10:00', tot: '14:00' };
+  const na = OberPoesDb.zetOpeningstijden(t.code, tijden, 60);
+  assert(na.openingstijden.za.open === true && na.slotDuur === 60);
+});
+test('demo-data: actieve tenant heeft wachtwoord en afspraken', () => {
+  OberPoesDb.wisAlles();
+  OberPoesDb.laadDemoData();
+  const actief = OberPoesDb.alleTenants().find((t) => t.status === 'Actief');
+  assert(!!actief.beheerWachtwoord && !!actief.openingstijden);
+  assert(OberPoesDb.afsprakenVoor(actief.code).length === 2);
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;

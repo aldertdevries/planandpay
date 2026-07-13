@@ -3,13 +3,17 @@ const OberPoesDb = (() => {
   const DB_SLEUTEL = 'oberpoes_db';
   // Zonder 0/O/1/I/L om verwarring te voorkomen.
   const CODE_TEKENS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const WACHTWOORD_TEKENS = 'abcdefghjkmnpqrstuvwxyz23456789';
 
   function lees() {
     try {
       const data = JSON.parse(localStorage.getItem(DB_SLEUTEL));
-      if (data && Array.isArray(data.tenants)) return data;
+      if (data && Array.isArray(data.tenants)) {
+        if (!Array.isArray(data.afspraken)) data.afspraken = [];
+        return data;
+      }
     } catch (e) { /* corrupte data → verse database */ }
-    return { tenants: [] };
+    return { tenants: [], afspraken: [] };
   }
   function schrijf(db) {
     localStorage.setItem(DB_SLEUTEL, JSON.stringify(db));
@@ -53,6 +57,44 @@ const OberPoesDb = (() => {
       return tenant;
     },
     zetStatus(code, status) { return this.wijzig(code, { status }); },
+    activeerTenant(code) {
+      const bestaand = this.vindTenant(code);
+      if (!bestaand) return null;
+      return this.wijzig(code, {
+        status: 'Actief',
+        beheerWachtwoord: bestaand.beheerWachtwoord
+          || Array.from({ length: 8 },
+            () => WACHTWOORD_TEKENS[Math.floor(Math.random() * WACHTWOORD_TEKENS.length)]).join(''),
+        openingstijden: bestaand.openingstijden || Agenda.standaardOpeningstijden(),
+        slotDuur: bestaand.slotDuur || 30,
+      });
+    },
+    alleAfspraken() { return lees().afspraken; },
+    afsprakenVoor(tenantCode) {
+      const norm = String(tenantCode).toUpperCase();
+      return lees().afspraken.filter((a) => a.tenantCode.toUpperCase() === norm);
+    },
+    maakAfspraak(velden) {
+      const db = lees();
+      const norm = String(velden.tenantCode).toUpperCase();
+      const bezet = db.afspraken.some((a) => a.tenantCode.toUpperCase() === norm
+        && a.datum === velden.datum && a.tijd === velden.tijd);
+      if (bezet) return null;
+      const afspraak = { ...velden, id: this.genereerCode(), gemaaktOp: new Date().toISOString() };
+      db.afspraken.push(afspraak);
+      schrijf(db);
+      return afspraak;
+    },
+    annuleerAfspraak(id) {
+      const db = lees();
+      const voor = db.afspraken.length;
+      db.afspraken = db.afspraken.filter((a) => a.id !== id);
+      schrijf(db);
+      return db.afspraken.length < voor;
+    },
+    zetOpeningstijden(code, openingstijden, slotDuur) {
+      return this.wijzig(code, { openingstijden, slotDuur });
+    },
     wisAlles() { localStorage.removeItem(DB_SLEUTEL); },
     laadDemoData() {
       const demoLogo = (letters, kleur) => {
@@ -78,10 +120,19 @@ const OberPoesDb = (() => {
         email: 'hallo@fluweel.nl', postcode: '2511 CS', huisnummer: '20',
         straat: 'Plein', plaats: "'s-Gravenhage", kvk: '11223344',
         contactpersoon: 'Saartje Snor', telefoon: '0701122334' });
-      // Variatie in status zodat filters iets tonen
+      // Variatie in status zodat filters iets tonen; actieve tenant met agenda
       const tenants = this.alleTenants();
-      this.zetStatus(tenants[1].code, 'Actief');
+      this.activeerTenant(tenants[1].code);
       this.zetStatus(tenants[2].code, 'Inactief');
+      const actief = this.vindTenant(tenants[1].code);
+      const vandaag = new Date().toISOString().slice(0, 10);
+      const dagen = Agenda.komendeOpenDagen(actief.openingstijden, vandaag, 14);
+      this.maakAfspraak({ tenantCode: actief.code, datum: dagen[1], tijd: '10:00',
+        naam: 'Jan Jansen', email: 'jan@voorbeeld.nl', postcode: '1012 JS', huisnummer: '1',
+        straat: 'Dam', plaats: 'Amsterdam', extra: 'Eerste kennismaking', telefoon: '0611111111' });
+      this.maakAfspraak({ tenantCode: actief.code, datum: dagen[1], tijd: '10:30',
+        naam: 'Fatima el Idrissi', email: 'fatima@voorbeeld.nl', postcode: '3511 CJ', huisnummer: '10',
+        straat: 'Domplein', plaats: 'Utrecht', extra: '', telefoon: '0622222222' });
     },
   };
 })();
