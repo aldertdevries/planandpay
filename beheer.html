@@ -34,11 +34,11 @@
         <p><button class="knop" id="knop-sms">Stuur code naar sms (<span id="masker-telefoon"></span>)</button></p>
       </div>
       <div id="code-stap" class="verborgen">
-        <div class="melding melding-info" id="demo-login-code"></div>
+        <div class="melding melding-info" id="demo-login-code" role="status"></div>
         <div class="veld">
           <label for="login-code">Verificatiecode</label>
           <input id="login-code" type="text" maxlength="6" autocomplete="off">
-          <span class="fout" id="fout-login"></span>
+          <span class="fout" aria-live="polite" id="fout-login"></span>
         </div>
         <p>
           <button class="knop" id="knop-verifieer">Bevestigen</button>

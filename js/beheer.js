@@ -67,6 +67,7 @@
     ['agenda', 'regels', 'facturen', 'tijden', 'profiel'].forEach((v) => {
       el('view-' + v).classList.toggle('verborgen', v !== naam);
       el('menu-' + v).classList.toggle('actief', v === naam);
+      el('menu-' + v).setAttribute('aria-current', v === naam ? 'page' : 'false');
     });
     if (naam === 'agenda') renderAgenda();
     if (naam === 'regels') renderRegels();
@@ -239,7 +240,7 @@
         <button class="knop knop-secundair" id="knop-opbouw-toevoegen">Toevoegen aan factuur</button>
         <h3>Factuurregels op deze factuur</h3>
         <div id="concept-lijst"></div>
-        <div class="melding melding-info" id="factuur-totaal">Nog geen regels toegevoegd.</div>
+        <div class="melding melding-info" id="factuur-totaal" role="status">Nog geen regels toegevoegd.</div>
         <span class="fout" id="fout-factuur"></span>
         <button class="knop" id="knop-factureer">Factureren en mailen</button>
         <button class="knop knop-secundair" id="knop-opbouw-sluit">Sluiten</button>
@@ -369,7 +370,7 @@
         <h2>Factuurregels</h2>
         ${regels.length === 0 ? '<p>Nog geen factuurregels gedefinieerd.</p>' : `
         <table class="tabel">
-          <thead><tr><th>Naam</th><th>Btw</th><th>Bedrag (incl. btw)</th><th></th></tr></thead>
+          <thead><tr><th scope="col">Naam</th><th scope="col">Btw</th><th scope="col">Bedrag (incl. btw)</th><th scope="col"></th></tr></thead>
           <tbody>${rijen}</tbody>
         </table>`}
         <h3>Regel toevoegen</h3>
@@ -516,7 +517,7 @@
       <div class="kaart">
         <h2>Openingstijden</h2>
         <table class="tabel">
-          <thead><tr><th>Dag</th><th>Van</th><th>Tot</th></tr></thead>
+          <thead><tr><th scope="col">Dag</th><th scope="col">Van</th><th scope="col">Tot</th></tr></thead>
           <tbody>${rijen}</tbody>
         </table>
         <div class="velden-rij" style="max-width: 480px; margin-top: 1rem;">
@@ -531,13 +532,13 @@
           </div>
         </div>
         <button class="knop" id="knop-tijden-opslaan">Opslaan</button>
-        <span class="melding melding-goed verborgen" id="tijden-opgeslagen">Opgeslagen.</span>
+        <span class="melding melding-goed verborgen" id="tijden-opgeslagen" role="status">Opgeslagen.</span>
       </div>
       <div class="kaart">
         <h2>Niet-boekbare perioden</h2>
         ${blokkades.length === 0 ? '<p>Geen niet-boekbare perioden.</p>' : `
         <table class="tabel">
-          <thead><tr><th>Omschrijving</th><th>Wanneer</th><th></th></tr></thead>
+          <thead><tr><th scope="col">Omschrijving</th><th scope="col">Wanneer</th><th scope="col"></th></tr></thead>
           <tbody>${blokRijen}</tbody>
         </table>`}
         <h3>Periode toevoegen</h3>
@@ -639,7 +640,7 @@
           <input id="boek-link" type="text" readonly value="${boekLink}">
         </div>
         <button class="knop knop-secundair" id="knop-kopieer">Kopieer link</button>
-        <span class="melding melding-goed verborgen" id="gekopieerd">Gekopieerd.</span>
+        <span class="melding melding-goed verborgen" id="gekopieerd" role="status">Gekopieerd.</span>
         <div class="veld" style="margin-top: 1rem;">
           <label for="mollie-id">Mollie API id (voor betaallinks)</label>
           <input id="mollie-id" type="text" value="${t.mollieApiId || ''}" placeholder="bijv. live_AbC123">

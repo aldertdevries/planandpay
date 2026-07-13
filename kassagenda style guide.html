@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KassaGenda Huisstijl Demo</title>
+    <!-- Google Fonts: Poppins voor koppen, Inter voor tekst -->
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=Inter:wght@400;500&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 1. Brand Guide Variabelen (Kleuren & Typografie) */
+        :root {
+            --mint-groen: #A8E6CF;
+            --blossom-roze: #FFB7B2;
+            --deep-charcoal: #2D3748;
+            --bg-light: #F7FAFC;
+            --font-koppen: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        /* RESET & BASIS */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-light);
+            color: var(--deep-charcoal);
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* BRAND INTERFACE CONTAINER */
+        .preview-container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 450px;
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 10px 30px rgba(45, 55, 72, 0.05);
+        }
+
+        /* 2. LOGO RICHTLIJNEN */
+        .logo {
+            font-family: var(--font-koppen);
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        /* Het App-Icon met verloop (Gradient) */
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--mint-groen), var(--blossom-roze));
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            font-size: 20px;
+        }
+        .logo-text-kassa {
+            color: var(--deep-charcoal);
+        }
+        .logo-text-genda {
+            color: var(--blossom-roze);
+        }
+
+        /* 3. VISUELE STIJL & UI ELEMENTEN */
+        h2 {
+            font-family: var(--font-koppen);
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        p {
+            font-size: 14px;
+            color: #718096;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        /* Dashboard Kaartje met Mint Groen */
+        .dashboard-card {
+            background-color: rgba(168, 230, 207, 0.15); /* Subtiel groen */
+            border-left: 5px solid var(--mint-groen);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .card-title {
+            font-weight: 500;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #4A5568;
+        }
+        .card-value {
+            font-family: var(--font-koppen);
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* Moderne Knop met Blossom Roze */
+        .btn-primary {
+            display: block;
+            width: 100%;
+            background-color: var(--blossom-roze);
+            color: var(--deep-charcoal);
+            font-family: var(--font-body);
+            font-weight: 500;
+            font-size: 16px;
+            text-align: center;
+            padding: 14px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        /* Subtiel interactie-effect */
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 183, 178, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="preview-container">
+        <!-- Logo Element -->
+        <div class="logo">
+            <div class="logo-icon">K</div>
+            <div>
+                <span class="logo-text-kassa">Kassa</span><span class="logo-text-genda">Genda</span>
+            </div>
+        </div>
+
+        <!-- Tekst Elementen -->
+        <h2>Tijd is transactie.</h2>
+        <p>Beheer je planning en verkoop moeiteloos in één eigentijds systeem. Speciaal ontworpen voor de moderne ondernemer.</p>
+
+        <!-- UI Dashboard Kaartje (Mint Groen aspect) -->
+        <div class="dashboard-card">
+            <div class="card-title">Omzet Vandaag (via Agenda)</div>
+            <div class="card-value">€ 1.245,50</div>
+        </div>
+
+        <!-- Actieknop (Blossom Roze aspect) -->
+        <button class="btn-primary">Start gratis proefperiode</button>
+    </div>
+
+</body>
+</html>

@@ -111,7 +111,7 @@
           ? `<p>Er zijn geen openstaande aanvragen.</p>
              <button class="knop knop-secundair" id="knop-demo">Demo-data laden</button>`
           : `<table class="tabel">
-               <thead><tr><th>Logo</th><th>Organisatie</th><th>Code</th><th>Contact</th><th>Datum</th><th></th></tr></thead>
+               <thead><tr><th scope="col">Logo</th><th scope="col">Organisatie</th><th scope="col">Code</th><th scope="col">Contact</th><th scope="col">Datum</th><th scope="col"></th></tr></thead>
                <tbody>${rijen}</tbody>
              </table>`}
       </div>`;

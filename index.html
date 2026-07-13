@@ -11,7 +11,7 @@
     <div class="container header-inner">
       <a class="logo" href="index.html">🐾 OberPoes</a>
       <nav>
-        <a href="index.html" class="actief">Home</a>
+        <a href="index.html" class="actief" aria-current="page">Home</a>
         <a href="over.html">Over OberPoes</a>
       </nav>
     </div>
@@ -29,29 +29,29 @@
           <div class="veld">
             <label for="naam">Naam organisatie</label>
             <input id="naam" type="text" required>
-            <span class="fout" id="fout-naam"></span>
+            <span class="fout" aria-live="polite" id="fout-naam"></span>
           </div>
           <div class="veld">
             <label for="logo">Logo (wordt geschaald naar 300×300 px)</label>
             <input id="logo" type="file" accept="image/*" required>
-            <span class="fout" id="fout-logo"></span>
+            <span class="fout" aria-live="polite" id="fout-logo"></span>
             <img id="logo-preview" class="logo-preview verborgen" alt="Logovoorbeeld">
           </div>
           <div class="veld">
             <label for="email">E-mailadres</label>
             <input id="email" type="email" required>
-            <span class="fout" id="fout-email"></span>
+            <span class="fout" aria-live="polite" id="fout-email"></span>
           </div>
           <div class="velden-rij">
             <div class="veld">
               <label for="postcode">Postcode</label>
               <input id="postcode" type="text" placeholder="1234 AB" required>
-              <span class="fout" id="fout-postcode"></span>
+              <span class="fout" aria-live="polite" id="fout-postcode"></span>
             </div>
             <div class="veld">
               <label for="huisnummer">Huisnummer</label>
               <input id="huisnummer" type="text" required>
-              <span class="fout" id="fout-huisnummer"></span>
+              <span class="fout" aria-live="polite" id="fout-huisnummer"></span>
             </div>
           </div>
           <div class="velden-rij">
@@ -64,21 +64,21 @@
               <input id="plaats" type="text" readonly placeholder="wordt automatisch bepaald">
             </div>
           </div>
-          <span class="fout" id="fout-adres"></span>
+          <span class="fout" aria-live="polite" id="fout-adres"></span>
           <div class="veld">
             <label for="kvk">KvK-nummer</label>
             <input id="kvk" type="text" placeholder="8 cijfers" required>
-            <span class="fout" id="fout-kvk"></span>
+            <span class="fout" aria-live="polite" id="fout-kvk"></span>
           </div>
           <div class="veld">
             <label for="contactpersoon">Contactpersoon</label>
             <input id="contactpersoon" type="text" required>
-            <span class="fout" id="fout-contactpersoon"></span>
+            <span class="fout" aria-live="polite" id="fout-contactpersoon"></span>
           </div>
           <div class="veld">
             <label for="telefoon">Telefoonnummer</label>
             <input id="telefoon" type="tel" placeholder="0612345678" required>
-            <span class="fout" id="fout-telefoon"></span>
+            <span class="fout" aria-live="polite" id="fout-telefoon"></span>
           </div>
           <button type="submit" class="knop">Aanvragen</button>
         </form>
@@ -88,17 +88,17 @@
       <div class="kaart verborgen" id="stap-verificatie">
         <h2>Verifieer uw gegevens</h2>
         <p>Ter controle hebben wij verificatiecodes verstuurd naar uw e-mailadres en telefoonnummer.</p>
-        <div class="melding melding-info" id="demo-codes"></div>
+        <div class="melding melding-info" id="demo-codes" role="status"></div>
         <div class="velden-rij">
           <div class="veld">
             <label for="email-code">Code uit e-mail</label>
             <input id="email-code" type="text" maxlength="6" autocomplete="off">
-            <span class="fout" id="fout-email-code"></span>
+            <span class="fout" aria-live="polite" id="fout-email-code"></span>
           </div>
           <div class="veld">
             <label for="telefoon-code">Code uit sms</label>
             <input id="telefoon-code" type="text" maxlength="6" autocomplete="off">
-            <span class="fout" id="fout-telefoon-code"></span>
+            <span class="fout" aria-live="polite" id="fout-telefoon-code"></span>
           </div>
         </div>
         <button type="button" class="knop" id="knop-verifieer">Bevestigen</button>
