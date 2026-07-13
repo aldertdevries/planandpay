@@ -122,6 +122,54 @@
     toonVerificatie();
   });
 
-  // --- Verificatie en opslaan: Task 4 vult deze functies in ---
-  function toonVerificatie() {}
+  // --- Verificatie (gesimuleerd): codes worden in de demo op het scherm getoond ---
+  let emailCode = '';
+  let telefoonCode = '';
+
+  const maakCode = () => String(Math.floor(100000 + Math.random() * 900000));
+
+  function leesFormulier() {
+    return {
+      naam: el('naam').value.trim(),
+      logo: logoDataUrl,
+      email: el('email').value.trim(),
+      postcode: el('postcode').value.trim().toUpperCase(),
+      huisnummer: el('huisnummer').value.trim(),
+      straat: adres.straat,
+      plaats: adres.plaats,
+      kvk: el('kvk').value.trim(),
+      contactpersoon: el('contactpersoon').value.trim(),
+      telefoon: el('telefoon').value.trim(),
+    };
+  }
+
+  function toonVerificatie() {
+    emailCode = maakCode();
+    telefoonCode = maakCode();
+    el('demo-codes').innerHTML =
+      '<strong>Demo:</strong> in een echte omgeving ontvangt u deze codes per e-mail en sms.<br>'
+      + `E-mailcode: <span class="demo-code">${emailCode}</span> &nbsp; `
+      + `Sms-code: <span class="demo-code">${telefoonCode}</span>`;
+    el('stap-formulier').classList.add('verborgen');
+    el('stap-verificatie').classList.remove('verborgen');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.getElementById('knop-verifieer').addEventListener('click', () => {
+    const emailOk = el('email-code').value.trim() === emailCode;
+    const telefoonOk = el('telefoon-code').value.trim() === telefoonCode;
+    zetFout('email-code', emailOk ? '' : 'Deze code klopt niet.');
+    zetFout('telefoon-code', telefoonOk ? '' : 'Deze code klopt niet.');
+    if (!emailOk || !telefoonOk) return;
+
+    const tenant = OberPoesDb.voegToe({
+      ...leesFormulier(),
+      emailGeverifieerd: true,
+      telefoonGeverifieerd: true,
+    });
+    el('tenant-code').textContent = tenant.code;
+    el('stap-verificatie').classList.add('verborgen');
+    el('stap-klaar').classList.remove('verborgen');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 })();
