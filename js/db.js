@@ -22,6 +22,17 @@ const OberPoesDb = (() => {
     const norm = String(code).toUpperCase();
     return db.tenants.find((t) => t.code.toUpperCase() === norm) || null;
   }
+  function volgendNummer(db, tenantCode) {
+    const norm = String(tenantCode).toUpperCase();
+    const tenant = zoek(db, norm);
+    const reeks = (tenant && tenant.factuurReeks) || {
+      prefix: new Date().toISOString().slice(0, 4),
+      volgende: db.facturen.filter((f) => f.tenantCode.toUpperCase() === norm).length + 1,
+    };
+    const nummer = `${reeks.prefix}-${String(reeks.volgende).padStart(4, '0')}`;
+    if (tenant) tenant.factuurReeks = { prefix: reeks.prefix, volgende: reeks.volgende + 1 };
+    return nummer;
+  }
 
   return {
     alleTenants() { return lees().tenants; },
@@ -123,12 +134,10 @@ const OberPoesDb = (() => {
       const db = lees();
       const afspraak = db.afspraken.find((a) => a.id === afspraakId);
       if (!afspraak || afspraak.factuurId) return null;
-      const norm = String(tenantCode).toUpperCase();
       const gemaaktOp = new Date().toISOString();
-      const volgnummer = db.facturen.filter((f) => f.tenantCode.toUpperCase() === norm).length + 1;
       const factuur = {
         id: this.genereerCode(),
-        nummer: `${gemaaktOp.slice(0, 4)}-${String(volgnummer).padStart(4, '0')}`,
+        nummer: volgendNummer(db, afspraak.tenantCode),
         tenantCode: afspraak.tenantCode,
         afspraakId,
         klantNaam: afspraak.naam,
@@ -152,6 +161,40 @@ const OberPoesDb = (() => {
       const factuur = db.facturen.find((f) => f.id === id);
       if (!factuur) return null;
       factuur.status = status;
+      schrijf(db);
+      return factuur;
+    },
+    zetFactuurReeks(code, prefix, volgende) {
+      return this.wijzig(code, { factuurReeks: { prefix, volgende } });
+    },
+    crediteerFactuur(id) {
+      const db = lees();
+      const origineel = db.facturen.find((f) => f.id === id);
+      if (!origineel || !['Open', 'Betaald'].includes(origineel.status)) return null;
+      const credit = {
+        id: this.genereerCode(),
+        nummer: volgendNummer(db, origineel.tenantCode),
+        tenantCode: origineel.tenantCode,
+        afspraakId: origineel.afspraakId,
+        klantNaam: origineel.klantNaam,
+        klantEmail: origineel.klantEmail,
+        regels: origineel.regels.map((r) => ({ ...r, bedragCent: -r.bedragCent })),
+        status: 'Credit',
+        creditVoor: origineel.nummer,
+        gemaaktOp: new Date().toISOString(),
+      };
+      origineel.status = 'Gecrediteerd';
+      const afspraak = db.afspraken.find((a) => a.id === origineel.afspraakId);
+      if (afspraak) delete afspraak.factuurId;
+      db.facturen.push(credit);
+      schrijf(db);
+      return credit;
+    },
+    laatVervallen(id) {
+      const db = lees();
+      const factuur = db.facturen.find((f) => f.id === id);
+      if (!factuur || factuur.status !== 'Open') return null;
+      factuur.status = 'Vervallen';
       schrijf(db);
       return factuur;
     },

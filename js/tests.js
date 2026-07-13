@@ -331,6 +331,45 @@ test('verzetAfspraak: verzet, weigert vol slot en gefactureerd', () => {
   assert(OberPoesDb.verzetAfspraak(a.id, '2026-07-16', '09:00') === null, 'gefactureerd');
 });
 
+// --- Verbeterronde: facturen ---
+test('factuurReeks: default, doortellen en instelbaar', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Reeks BV' });
+  const a1 = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '09:00', naam: 'A', email: 'a@x.nl' });
+  const a2 = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '10:00', naam: 'B', email: 'b@x.nl' });
+  const f1 = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a1.id, regels: [] });
+  assert(f1.nummer.endsWith('-0001'), f1.nummer);
+  OberPoesDb.zetFactuurReeks(t.code, 'BJ27', 100);
+  const f2 = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a2.id, regels: [] });
+  assert(f2.nummer === 'BJ27-0100', f2.nummer);
+  assert(OberPoesDb.vindTenant(t.code).factuurReeks.volgende === 101);
+});
+test('crediteerFactuur: credit met negatieve regels, afspraak vrij', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Credit BV' });
+  const a = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '09:00', naam: 'A', email: 'a@x.nl' });
+  const f = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a.id,
+    regels: [{ naam: 'Consult', btw: 'hoog', bedragCent: 5000 }] });
+  const credit = OberPoesDb.crediteerFactuur(f.id);
+  assert(credit.status === 'Credit' && credit.creditVoor === f.nummer);
+  assert(credit.regels[0].bedragCent === -5000);
+  assert(OberPoesDb.vindFactuur(f.id).status === 'Gecrediteerd');
+  assert(OberPoesDb.afsprakenVoor(t.code)[0].factuurId === undefined, 'afspraak weer vrij');
+  assert(OberPoesDb.crediteerFactuur(f.id) === null, 'niet nogmaals');
+});
+test('laatVervallen: alleen vanuit Open', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Verval BV' });
+  const a = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '09:00', naam: 'A', email: 'a@x.nl' });
+  const f = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a.id, regels: [] });
+  assert(OberPoesDb.laatVervallen(f.id).status === 'Vervallen');
+  assert(OberPoesDb.laatVervallen(f.id) === null, 'niet nogmaals');
+});
+test('totalen: negatieve bedragen (creditfactuur)', () => {
+  const t = Facturatie.totalen([{ naam: 'C', btw: 'hoog', bedragCent: -12100 }]);
+  assert(t.inclCent === -12100 && t.btwHoogCent === -2100 && t.exclCent === -10000);
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;
