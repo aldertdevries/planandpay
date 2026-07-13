@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Factuur</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .factuur-kop { display: flex; justify-content: space-between; align-items: center; }
+    .factuur-kop img { width: 90px; height: 90px; border-radius: 10px; border: 1px solid var(--rand); }
+    .factuur-meta { text-align: right; }
+    .totalen td { border-bottom: none; }
+    .totalen tr:last-child td { font-weight: 700; border-top: 2px solid var(--paars); }
+    @media print {
+      .geen-print, .site-footer { display: none !important; }
+      body { background: #fff; }
+      .kaart { border: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="kaart verborgen" id="niet-beschikbaar">
+      <h2>Deze pagina is niet beschikbaar</h2>
+      <p>Controleer of de link klopt.</p>
+    </div>
+    <div class="kaart verborgen" id="factuur">
+      <div class="factuur-kop">
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <img id="f-logo" alt="Logo">
+          <div>
+            <h1 id="f-tenant" style="margin:0"></h1>
+            <p id="f-tenant-adres" style="margin:0; color:#666"></p>
+          </div>
+        </div>
+        <div class="factuur-meta">
+          <h2 style="margin:0">Factuur <span id="f-nummer"></span></h2>
+          <p style="margin:0">Datum: <span id="f-datum"></span><br>
+          Status: <span id="f-status"></span></p>
+        </div>
+      </div>
+      <hr>
+      <p><strong>Aan:</strong> <span id="f-klant"></span><br>
+      <strong>Betreft:</strong> afspraak op <span id="f-afspraak"></span></p>
+      <table class="tabel" id="f-regels-tabel">
+        <thead><tr><th>Omschrijving</th><th>Btw</th><th style="text-align:right">Bedrag (incl.)</th></tr></thead>
+        <tbody id="f-regels"></tbody>
+      </table>
+      <table class="tabel totalen" style="max-width: 320px; margin-left: auto; margin-top: 1rem;">
+        <tbody id="f-totalen"></tbody>
+      </table>
+      <p class="geen-print" style="margin-top: 2rem;">
+        <button class="knop" onclick="window.print()">Opslaan als PDF (afdrukken)</button>
+      </p>
+    </div>
+  </main>
+  <footer class="site-footer">mogelijk gemaakt door OberPoes</footer>
+  <script src="js/validatie.js"></script>
+  <script src="js/agenda.js"></script>
+  <script src="js/facturatie.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/factuur.js"></script>
+</body>
+</html>

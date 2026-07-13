@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Betalen</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .checkout { max-width: 420px; margin: 3rem auto; text-align: center; }
+    .checkout .bedrag { font-size: 2.2rem; font-weight: 700; color: var(--paars-donker); }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="kaart verborgen checkout" id="niet-beschikbaar">
+      <h2>Deze pagina is niet beschikbaar</h2>
+      <p>Controleer of de link klopt.</p>
+    </div>
+    <div class="kaart verborgen checkout" id="checkout">
+      <p style="color:#888; margin-bottom:0">Demo-checkout (Mollie-simulatie)</p>
+      <h1 id="b-tenant"></h1>
+      <p id="b-omschrijving"></p>
+      <p class="bedrag" id="b-bedrag"></p>
+      <div id="b-open">
+        <button class="knop" id="knop-betaal" style="width:100%">Betalen</button>
+      </div>
+      <div id="b-betaald" class="verborgen">
+        <div class="melding melding-goed">Deze factuur is betaald. Dank u wel!</div>
+      </div>
+      <p style="color:#aaa; font-size:0.8rem" id="b-mollie"></p>
+    </div>
+  </main>
+  <footer class="site-footer">mogelijk gemaakt door OberPoes</footer>
+  <script src="js/validatie.js"></script>
+  <script src="js/agenda.js"></script>
+  <script src="js/facturatie.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/betaal.js"></script>
+</body>
+</html>
