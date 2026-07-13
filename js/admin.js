@@ -93,9 +93,119 @@
     });
   }
 
-  // --- Tenants: Task 6 vult dit in ---
+  // --- Tenants ---
+  let tenantsFilter = 'Alle';
+
   function renderTenants() {
-    el('view-tenants').innerHTML = '<div class="kaart"><h2>Tenants</h2><p>Volgt.</p></div>';
+    const alle = OberPoesDb.alleTenants();
+    const lijst = tenantsFilter === 'Alle'
+      ? alle : alle.filter((t) => t.status === tenantsFilter);
+    const opties = ['Alle', 'Aangevraagd', 'Afgewezen', 'Actief', 'Inactief']
+      .map((s) => `<option ${s === tenantsFilter ? 'selected' : ''}>${s}</option>`).join('');
+    const rijen = lijst.map((t) => `
+      <tr class="klikbaar" data-code="${t.code}">
+        <td><img src="${t.logo}" alt=""></td>
+        <td><strong>${t.naam}</strong></td>
+        <td class="demo-code">${t.code}</td>
+        <td>${badge(t.status)}</td>
+        <td>${t.plaats}</td>
+        <td>${datum(t.aangevraagdOp)}</td>
+      </tr>`).join('');
+    el('view-tenants').innerHTML = `
+      <div class="kaart">
+        <h2>Tenants</h2>
+        <div class="veld" style="max-width: 220px;">
+          <label for="filter-status">Filter op status</label>
+          <select id="filter-status">${opties}</select>
+        </div>
+        ${lijst.length === 0 ? '<p>Geen tenants gevonden.</p>' : `
+        <table class="tabel">
+          <thead><tr><th>Logo</th><th>Organisatie</th><th>Code</th><th>Status</th><th>Plaats</th><th>Aangevraagd</th></tr></thead>
+          <tbody>${rijen}</tbody>
+        </table>
+        <p><small>Klik op een rij om de gegevens in te zien of te wijzigen.</small></p>`}
+      </div>
+      <div id="tenant-detail"></div>`;
+    el('filter-status').addEventListener('change', (e) => {
+      tenantsFilter = e.target.value;
+      renderTenants();
+    });
+    el('view-tenants').querySelectorAll('tr.klikbaar').forEach((rij) => {
+      rij.addEventListener('click', () => renderTenantDetail(rij.dataset.code));
+    });
+  }
+
+  function renderTenantDetail(code) {
+    const t = OberPoesDb.vindTenant(code);
+    if (!t) return;
+    const veld = (id, label, waarde, extra = '') => `
+      <div class="veld">
+        <label for="bewerk-${id}">${label}</label>
+        <input id="bewerk-${id}" type="text" value="${waarde}" ${extra}>
+        <span class="fout" id="fout-bewerk-${id}"></span>
+      </div>`;
+    const statusOpties = ['Aangevraagd', 'Afgewezen', 'Actief', 'Inactief']
+      .map((s) => `<option ${s === t.status ? 'selected' : ''}>${s}</option>`).join('');
+    el('tenant-detail').innerHTML = `
+      <div class="kaart">
+        <h2>${t.naam} <span class="demo-code">${t.code}</span></h2>
+        <div class="velden-rij">
+          <img src="${t.logo}" alt="Logo" class="logo-preview">
+          <div style="flex:1">
+            ${veld('naam', 'Naam organisatie', t.naam)}
+            <div class="veld">
+              <label for="bewerk-status">Status</label>
+              <select id="bewerk-status">${statusOpties}</select>
+            </div>
+          </div>
+        </div>
+        ${veld('email', 'E-mailadres', t.email)}
+        <div class="velden-rij">
+          ${veld('postcode', 'Postcode', t.postcode)}
+          ${veld('huisnummer', 'Huisnummer', t.huisnummer)}
+        </div>
+        <div class="velden-rij">
+          ${veld('straat', 'Straat', t.straat)}
+          ${veld('plaats', 'Plaats', t.plaats)}
+        </div>
+        ${veld('kvk', 'KvK-nummer', t.kvk)}
+        ${veld('contactpersoon', 'Contactpersoon', t.contactpersoon)}
+        ${veld('telefoon', 'Telefoonnummer', t.telefoon)}
+        <span class="fout" id="fout-bewerk-algemeen"></span>
+        <button class="knop" id="knop-bewaar">Opslaan</button>
+        <button class="knop knop-secundair" id="knop-sluit">Sluiten</button>
+      </div>`;
+    el('tenant-detail').scrollIntoView({ behavior: 'smooth' });
+
+    el('knop-sluit').addEventListener('click', () => { el('tenant-detail').innerHTML = ''; });
+    el('knop-bewaar').addEventListener('click', () => {
+      const regels = {
+        naam: Validatie.naam, email: Validatie.email, postcode: Validatie.postcode,
+        huisnummer: Validatie.huisnummer, kvk: Validatie.kvk,
+        contactpersoon: Validatie.naam, telefoon: Validatie.telefoon,
+      };
+      let ok = true;
+      Object.entries(regels).forEach(([id, regel]) => {
+        const geldig = regel(el('bewerk-' + id).value);
+        el('fout-bewerk-' + id).textContent = geldig ? '' : 'Ongeldige waarde.';
+        if (!geldig) ok = false;
+      });
+      if (!ok) return;
+      OberPoesDb.wijzig(t.code, {
+        naam: el('bewerk-naam').value.trim(),
+        email: el('bewerk-email').value.trim(),
+        postcode: el('bewerk-postcode').value.trim().toUpperCase(),
+        huisnummer: el('bewerk-huisnummer').value.trim(),
+        straat: el('bewerk-straat').value.trim(),
+        plaats: el('bewerk-plaats').value.trim(),
+        kvk: el('bewerk-kvk').value.trim(),
+        contactpersoon: el('bewerk-contactpersoon').value.trim(),
+        telefoon: el('bewerk-telefoon').value.trim(),
+        status: el('bewerk-status').value,
+      });
+      el('tenant-detail').innerHTML = '';
+      renderTenants();
+    });
   }
 
   if (isIngelogd()) toonApp();
