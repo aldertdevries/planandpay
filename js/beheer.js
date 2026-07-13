@@ -89,7 +89,10 @@
         <td>${a.naam}${a.extra ? `<br><small>${a.extra}</small>` : ''}</td>
         <td>${a.straat} ${a.huisnummer}<br><small>${a.postcode} ${a.plaats}</small></td>
         <td>${a.email}<br><small>${a.telefoon}</small></td>
-        <td><button class="knop knop-gevaar knop-klein" data-id="${a.id}">Annuleren</button></td>
+        <td>${a.factuurId
+          ? `<a class="badge badge-actief" href="factuur.html?id=${a.factuurId}" target="_blank">Gefactureerd</a>`
+          : `<button class="knop knop-klein" data-factureer="${a.id}">Factureren</button>
+             <button class="knop knop-gevaar knop-klein" data-id="${a.id}">Annuleren</button>`}</td>
       </tr>`).join('');
     el('view-agenda').innerHTML = `
       <div class="kaart">
@@ -99,13 +102,139 @@
           <thead><tr><th>Wanneer</th><th>Klant</th><th>Adres</th><th>Contact</th><th></th></tr></thead>
           <tbody>${rijen}</tbody>
         </table>`}
-      </div>`;
+      </div>
+      <div id="factuur-opbouw"></div>`;
     el('view-agenda').querySelectorAll('button[data-id]').forEach((k) => {
       k.addEventListener('click', () => {
         OberPoesDb.annuleerAfspraak(k.dataset.id);
         renderAgenda();
       });
     });
+    el('view-agenda').querySelectorAll('button[data-factureer]').forEach((k) => {
+      k.addEventListener('click', () => renderFactuurOpbouw(k.dataset.factureer));
+    });
+  }
+
+  // --- Factureren van een afspraak ---
+  function renderFactuurOpbouw(afspraakId) {
+    const t = huidigeTenant();
+    const afspraak = OberPoesDb.afsprakenVoor(code).find((a) => a.id === afspraakId);
+    if (!afspraak) return;
+    const losseRegels = [];
+
+    const voorgedefinieerd = (t.factuurRegels || []).map((r) => `
+      <label style="display:block">
+        <input type="checkbox" class="regel-keuze" data-regel-id="${r.id}">
+        ${r.naam} — ${btwLabel(r.btw)} — ${Facturatie.euro(r.bedragCent)}
+      </label>`).join('') || '<p><em>Nog geen voorgedefinieerde regels (zie tabblad Factuurregels).</em></p>';
+
+    el('factuur-opbouw').innerHTML = `
+      <div class="kaart">
+        <h2>Factuur voor ${afspraak.naam} — ${afspraak.datum} om ${afspraak.tijd}</h2>
+        <div class="veld"><label>Voorgedefinieerde regels</label>${voorgedefinieerd}</div>
+        <div class="veld">
+          <label>Nieuwe regel</label>
+          <div class="velden-rij">
+            <input id="nieuw-naam" type="text" placeholder="Omschrijving">
+            <select id="nieuw-btw"><option value="hoog">21% (hoog)</option><option value="laag">9% (laag)</option></select>
+            <input id="nieuw-bedrag" type="number" step="0.01" min="0" placeholder="Bedrag incl. btw (€)">
+            <button type="button" class="knop knop-secundair" id="knop-nieuw-bij">Toevoegen</button>
+          </div>
+          <label><input type="checkbox" id="nieuw-bewaar"> Ook bewaren als voorgedefinieerde regel</label>
+          <span class="fout" id="fout-nieuw"></span>
+        </div>
+        <div id="losse-lijst"></div>
+        <div class="melding melding-info" id="factuur-totaal">Nog geen regels gekozen.</div>
+        <span class="fout" id="fout-factuur"></span>
+        <button class="knop" id="knop-factureer">Factureren en mailen</button>
+        <button class="knop knop-secundair" id="knop-opbouw-sluit">Sluiten</button>
+      </div>`;
+    el('factuur-opbouw').scrollIntoView({ behavior: 'smooth' });
+
+    function gekozenRegels() {
+      const vaste = [...el('factuur-opbouw').querySelectorAll('.regel-keuze:checked')]
+        .map((c) => (huidigeTenant().factuurRegels || []).find((r) => r.id === c.dataset.regelId))
+        .filter(Boolean)
+        .map(({ naam, btw, bedragCent }) => ({ naam, btw, bedragCent }));
+      return [...vaste, ...losseRegels];
+    }
+    function werkTotaalBij() {
+      const regels = gekozenRegels();
+      if (regels.length === 0) {
+        el('factuur-totaal').textContent = 'Nog geen regels gekozen.';
+        return;
+      }
+      const tot = Facturatie.totalen(regels);
+      el('factuur-totaal').innerHTML =
+        `Totaal: <strong>${Facturatie.euro(tot.inclCent)}</strong> incl. btw `
+        + `(excl. ${Facturatie.euro(tot.exclCent)}, btw 21%: ${Facturatie.euro(tot.btwHoogCent)}, `
+        + `btw 9%: ${Facturatie.euro(tot.btwLaagCent)})`;
+    }
+    el('factuur-opbouw').querySelectorAll('.regel-keuze').forEach((c) =>
+      c.addEventListener('change', werkTotaalBij));
+
+    el('knop-nieuw-bij').addEventListener('click', () => {
+      const naam = el('nieuw-naam').value.trim();
+      const bedragCent = bedragNaarCent(el('nieuw-bedrag').value);
+      if (naam.length < 2 || bedragCent === null) {
+        el('fout-nieuw').textContent = 'Vul een omschrijving en een bedrag groter dan 0 in.';
+        return;
+      }
+      el('fout-nieuw').textContent = '';
+      const regel = { naam, btw: el('nieuw-btw').value, bedragCent };
+      losseRegels.push(regel);
+      if (el('nieuw-bewaar').checked) {
+        OberPoesDb.zetFactuurRegels(code, [
+          ...(huidigeTenant().factuurRegels || []),
+          { id: OberPoesDb.genereerCode(), ...regel },
+        ]);
+      }
+      el('nieuw-naam').value = '';
+      el('nieuw-bedrag').value = '';
+      el('losse-lijst').innerHTML = losseRegels.map((r) =>
+        `<p>+ ${r.naam} — ${btwLabel(r.btw)} — ${Facturatie.euro(r.bedragCent)}</p>`).join('');
+      werkTotaalBij();
+    });
+
+    el('knop-opbouw-sluit').addEventListener('click', () => { el('factuur-opbouw').innerHTML = ''; });
+
+    el('knop-factureer').addEventListener('click', () => {
+      const regels = gekozenRegels();
+      if (regels.length === 0) {
+        el('fout-factuur').textContent = 'Kies of maak minimaal één factuurregel.';
+        return;
+      }
+      const factuur = OberPoesDb.maakFactuur({ tenantCode: code, afspraakId, regels });
+      if (!factuur) {
+        el('fout-factuur').textContent = 'Deze afspraak is al gefactureerd.';
+        return;
+      }
+      renderAgenda();
+      toonMail(factuur);
+    });
+  }
+
+  function toonMail(factuur) {
+    const t = huidigeTenant();
+    const totaal = Facturatie.totalen(factuur.regels);
+    el('factuur-opbouw').innerHTML = `
+      <div class="kaart">
+        <h2>Mail verzonden (demo)</h2>
+        <div class="melding melding-info">
+          <strong>Aan:</strong> ${factuur.klantEmail}<br>
+          <strong>Onderwerp:</strong> Factuur ${factuur.nummer} van ${t.naam}<br><br>
+          Beste ${factuur.klantNaam},<br><br>
+          Hierbij ontvangt u factuur ${factuur.nummer} (${Facturatie.euro(totaal.inclCent)})
+          voor uw afspraak. U kunt eenvoudig online betalen via
+          <a href="betaal.html?factuur=${factuur.id}" target="_blank">deze Mollie-betaallink</a>.<br><br>
+          Met vriendelijke groet,<br>${t.naam}<br><br>
+          <strong>Bijlage:</strong>
+          <a href="factuur.html?id=${factuur.id}" target="_blank">factuur-${factuur.nummer}.pdf</a>
+        </div>
+        <button class="knop knop-secundair" id="knop-mail-sluit">Sluiten</button>
+      </div>`;
+    el('factuur-opbouw').scrollIntoView({ behavior: 'smooth' });
+    el('knop-mail-sluit').addEventListener('click', () => { el('factuur-opbouw').innerHTML = ''; });
   }
 
   // --- Factuurregels ---
