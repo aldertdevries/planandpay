@@ -67,6 +67,7 @@ const OberPoesDb = (() => {
         factuurRegels: bestaand.factuurRegels || [],
         mollieApiId: bestaand.mollieApiId || '',
         blokkades: bestaand.blokkades || [],
+        capaciteit: bestaand.capaciteit || 1,
       });
     },
     alleAfspraken() { return lees().afspraken; },
@@ -77,9 +78,11 @@ const OberPoesDb = (() => {
     maakAfspraak(velden) {
       const db = lees();
       const norm = String(velden.tenantCode).toUpperCase();
-      const bezet = db.afspraken.some((a) => a.tenantCode.toUpperCase() === norm
-        && a.datum === velden.datum && a.tijd === velden.tijd);
-      if (bezet) return null;
+      const tenant = zoek(db, norm);
+      const capaciteit = (tenant && tenant.capaciteit) || 1;
+      const aantal = db.afspraken.filter((a) => a.tenantCode.toUpperCase() === norm
+        && a.datum === velden.datum && a.tijd === velden.tijd).length;
+      if (aantal >= capaciteit) return null;
       const afspraak = { ...velden, id: this.genereerCode(), gemaaktOp: new Date().toISOString() };
       db.afspraken.push(afspraak);
       schrijf(db);
@@ -93,8 +96,25 @@ const OberPoesDb = (() => {
       schrijf(db);
       return true;
     },
-    zetOpeningstijden(code, openingstijden, slotDuur) {
-      return this.wijzig(code, { openingstijden, slotDuur });
+    zetOpeningstijden(code, openingstijden, slotDuur, capaciteit) {
+      const velden = { openingstijden, slotDuur };
+      if (capaciteit !== undefined) velden.capaciteit = capaciteit;
+      return this.wijzig(code, velden);
+    },
+    verzetAfspraak(id, datum, tijd) {
+      const db = lees();
+      const afspraak = db.afspraken.find((a) => a.id === id);
+      if (!afspraak || afspraak.factuurId) return null;
+      const norm = afspraak.tenantCode.toUpperCase();
+      const tenant = zoek(db, norm);
+      const capaciteit = (tenant && tenant.capaciteit) || 1;
+      const aantal = db.afspraken.filter((a) => a.id !== id
+        && a.tenantCode.toUpperCase() === norm && a.datum === datum && a.tijd === tijd).length;
+      if (aantal >= capaciteit) return null;
+      afspraak.datum = datum;
+      afspraak.tijd = tijd;
+      schrijf(db);
+      return afspraak;
     },
     zetBlokkades(code, blokkades) { return this.wijzig(code, { blokkades }); },
     zetFactuurRegels(code, regels) { return this.wijzig(code, { factuurRegels: regels }); },

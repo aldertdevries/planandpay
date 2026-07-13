@@ -31,24 +31,31 @@ const Agenda = (() => {
       }
       return dagen;
     },
-    sloten(openingstijden, slotDuur, datumIso, afspraken, blokkades = []) {
+    maandagVan(datumIso) {
+      const d = new Date(datumIso + 'T12:00:00');
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      return d.toISOString().slice(0, 10);
+    },
+    sloten(openingstijden, slotDuur, datumIso, afspraken, blokkades = [], capaciteit = 1) {
       const dag = openingstijden[dagVan(datumIso)];
       if (!dag.open) return [];
-      const bezet = new Set(afspraken.filter((a) => a.datum === datumIso).map((a) => a.tijd));
+      const perTijd = {};
+      afspraken.filter((a) => a.datum === datumIso)
+        .forEach((a) => { perTijd[a.tijd] = (perTijd[a.tijd] || 0) + 1; });
       const geblokkeerd = blokkades.filter((b) =>
-        (b.type === 'eenmalig' && b.datum === datumIso)
+        (b.type === 'eenmalig' && b.datum <= datumIso && datumIso <= (b.datumTot || b.datum))
         || (b.type === 'wekelijks' && b.dag === dagVan(datumIso)));
       const uit = [];
       for (let m = naarMinuten(dag.van); m + slotDuur <= naarMinuten(dag.tot); m += slotDuur) {
         const tijd = naarTijd(m);
         const inBlokkade = geblokkeerd.some((b) =>
           m < naarMinuten(b.tot) && m + slotDuur > naarMinuten(b.van));
-        uit.push({ tijd, vrij: !bezet.has(tijd) && !inBlokkade });
+        uit.push({ tijd, vrij: (perTijd[tijd] || 0) < capaciteit && !inBlokkade });
       }
       return uit;
     },
     actieveBlokkades(blokkades, vanafIso) {
-      return blokkades.filter((b) => b.type === 'wekelijks' || b.datum >= vanafIso);
+      return blokkades.filter((b) => b.type === 'wekelijks' || (b.datumTot || b.datum) >= vanafIso);
     },
   };
 })();

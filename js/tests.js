@@ -281,6 +281,56 @@ test('zetBlokkades en activeerTenant-default', () => {
   assert(OberPoesDb.vindTenant(t.code).blokkades.length === 1);
 });
 
+// --- Verbeterronde: agenda ---
+test('maandagVan: geeft maandag van de week', () => {
+  assert(Agenda.maandagVan('2026-07-15') === '2026-07-13');
+  assert(Agenda.maandagVan('2026-07-13') === '2026-07-13');
+  assert(Agenda.maandagVan('2026-07-19') === '2026-07-13');
+});
+test('sloten: capaciteit 2 laat twee afspraken per slot toe', () => {
+  const een = [{ datum: '2026-07-13', tijd: '10:00' }];
+  const twee = [...een, { datum: '2026-07-13', tijd: '10:00' }];
+  const t = Agenda.standaardOpeningstijden();
+  assert(Agenda.sloten(t, 30, '2026-07-13', een, [], 2).find((s) => s.tijd === '10:00').vrij === true);
+  assert(Agenda.sloten(t, 30, '2026-07-13', twee, [], 2).find((s) => s.tijd === '10:00').vrij === false);
+});
+test('sloten: meerdaagse blokkade blokkeert hele periode', () => {
+  const blok = [{ type: 'eenmalig', datum: '2026-07-14', datumTot: '2026-07-16', van: '09:00', tot: '17:00' }];
+  const t = Agenda.standaardOpeningstijden();
+  assert(Agenda.sloten(t, 30, '2026-07-14', [], blok).every((s) => !s.vrij));
+  assert(Agenda.sloten(t, 30, '2026-07-16', [], blok).every((s) => !s.vrij));
+  assert(Agenda.sloten(t, 30, '2026-07-13', [], blok).every((s) => s.vrij));
+  assert(Agenda.sloten(t, 30, '2026-07-17', [], blok).every((s) => s.vrij));
+});
+test('actieveBlokkades: meerdaags verloopt op t/m-datum', () => {
+  const blok = [
+    { type: 'eenmalig', datum: '2026-07-01', datumTot: '2026-07-12', van: '09:00', tot: '17:00' },
+    { type: 'eenmalig', datum: '2026-07-01', datumTot: '2026-07-14', van: '09:00', tot: '17:00' },
+  ];
+  const actief = Agenda.actieveBlokkades(blok, '2026-07-13');
+  assert(actief.length === 1 && actief[0].datumTot === '2026-07-14');
+});
+// --- Verbeterronde: database ---
+test('maakAfspraak: respecteert capaciteit van de tenant', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Cap BV' });
+  OberPoesDb.activeerTenant(t.code);
+  OberPoesDb.zetOpeningstijden(t.code, Agenda.standaardOpeningstijden(), 30, 2);
+  assert(OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '10:00', naam: 'A' }) !== null);
+  assert(OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '10:00', naam: 'B' }) !== null);
+  assert(OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '10:00', naam: 'C' }) === null);
+});
+test('verzetAfspraak: verzet, weigert vol slot en gefactureerd', () => {
+  const t = OberPoesDb.alleTenants()[0]; // Cap BV, capaciteit 2
+  const a = OberPoesDb.afsprakenVoor(t.code)[0];
+  const verzet = OberPoesDb.verzetAfspraak(a.id, '2026-07-15', '11:00');
+  assert(verzet && verzet.datum === '2026-07-15' && verzet.tijd === '11:00');
+  OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '10:00', naam: 'D' });
+  assert(OberPoesDb.verzetAfspraak(a.id, '2026-07-14', '10:00') === null, 'vol slot');
+  OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a.id, regels: [] });
+  assert(OberPoesDb.verzetAfspraak(a.id, '2026-07-16', '09:00') === null, 'gefactureerd');
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;
