@@ -388,7 +388,7 @@ test('ics: start, eind over uurgrens en verplichte velden', () => {
   assert(ics.includes('DTSTART:20260714T164500'));
   assert(ics.includes('DTEND:20260714T171500'), 'eind over uurgrens');
   assert(ics.includes('SUMMARY:Afspraak') && ics.includes('LOCATION:Dam 1, Amsterdam'));
-  assert(ics.includes('UID:AB12@kassagenda'));
+  assert(ics.includes('UID:AB12@planandpay'));
   assert(ics.startsWith('BEGIN:VCALENDAR') && ics.includes('END:VEVENT'));
   assert(ics.includes('\r\n'), 'CRLF');
 });

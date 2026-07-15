@@ -1,14 +1,13 @@
 :root {
-  --mint: #A8E6CF;
-  --roze: #FFB7B2;
-  --charcoal: #2D3748;
-  --bg: #F7FAFC;
-  --grijstekst: #718096;
-  --rand: #E2E8F0;
-  --rood: #c0392b;
-  --groen: #1e8e4e;
-  --blauw: #2471a3;
-  --grijs: #7f8c8d;
+  --blauw: #2563EB;      /* Plan Blue — primair */
+  --groen: #10B981;      /* Pay Green — success */
+  --oranje: #F59E0B;     /* Growth Orange — accent */
+  --charcoal: #0F172A;   /* Midnight — donkere tekst */
+  --grijstekst: #475569; /* Slate — gedempte tekst */
+  --rand: #CBD5E1;       /* Light Border */
+  --bg: #F8FAFC;         /* Background */
+  --rood: #DC2626;
+  --grijs: #64748B;
   --font-koppen: 'Poppins', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
 }
@@ -37,24 +36,24 @@ h1, h2, h3 { font-family: var(--font-koppen); font-weight: 600; }
 }
 .logo-icon {
   width: 40px; height: 40px; flex: none;
-  background: linear-gradient(135deg, var(--mint), var(--roze));
-  border-radius: 12px;
   display: flex; justify-content: center; align-items: center;
-  color: #fff; font-size: 20px; font-family: var(--font-koppen); font-weight: 700;
 }
-.logo-kassa { color: var(--charcoal); }
-.logo-genda { color: var(--roze); }
+.logo-icon svg { width: 100%; height: 100%; display: block; }
+.logo-plan { color: var(--blauw); }
+.logo-and { color: var(--charcoal); }
+.logo-pay { color: var(--groen); }
 .logo small { font-size: 0.9rem; color: var(--grijstekst); font-weight: 500; }
 
 .site-header nav a {
   color: var(--charcoal); text-decoration: none; margin-left: 1.25rem;
   padding-bottom: 3px; font-weight: 500;
 }
-.site-header nav a.actief, .site-header nav a:hover { border-bottom: 3px solid var(--roze); }
+.site-header nav a.actief, .site-header nav a:hover { border-bottom: 3px solid var(--blauw); }
 
 /* Hero */
 .hero { text-align: center; padding: 3rem 0 2rem; }
 .hero h1 { font-size: 2.4rem; margin: 0 0 0.5rem; color: var(--charcoal); font-weight: 700; }
+.hero .tagline { font-family: var(--font-koppen); font-weight: 600; font-size: 1.2rem; color: var(--blauw); margin: 0 0 0.75rem; }
 .hero p { font-size: 1.15rem; color: var(--grijstekst); max-width: 34rem; margin: 0 auto; }
 
 /* Kaarten en formulieren */
@@ -81,29 +80,31 @@ h1, h2, h3 { font-family: var(--font-koppen); font-weight: 600; }
 .velden-rij { display: flex; gap: 1rem; }
 .velden-rij .veld { flex: 1; }
 
-/* Knoppen (style guide: blossom-roze primair) */
+/* Knoppen (style guide: Plan Blue primair, wit) */
 .knop {
-  background: var(--roze); color: var(--charcoal); border: none; border-radius: 14px;
+  background: var(--blauw); color: #fff; border: none; border-radius: 14px;
   padding: 0.65rem 1.4rem; font-size: 1rem; font-weight: 500; cursor: pointer;
   text-decoration: none; display: inline-block; font-family: var(--font-body);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.knop:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 183, 178, 0.4); }
-.knop-secundair { background: #fff; color: var(--charcoal); border: 1px solid var(--charcoal); }
-.knop-secundair:hover { box-shadow: 0 5px 15px rgba(45, 55, 72, 0.15); }
+.knop:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(37, 99, 235, 0.35); }
+.knop-secundair { background: #fff; color: var(--charcoal); border: 1px solid var(--rand); }
+.knop-secundair:hover { box-shadow: 0 5px 15px rgba(15, 23, 42, 0.12); }
 .knop-gevaar { background: var(--rood); color: #fff; }
-.knop-gevaar:hover { box-shadow: 0 5px 15px rgba(192, 57, 43, 0.35); }
+.knop-gevaar:hover { box-shadow: 0 5px 15px rgba(220, 38, 38, 0.35); }
 .knop-goed { background: var(--groen); color: #fff; }
-.knop-goed:hover { box-shadow: 0 5px 15px rgba(30, 142, 78, 0.35); }
+.knop-goed:hover { box-shadow: 0 5px 15px rgba(16, 185, 129, 0.35); }
+.knop-accent { background: var(--oranje); color: #fff; }
+.knop-accent:hover { box-shadow: 0 5px 15px rgba(245, 158, 11, 0.35); }
 .knop-klein { padding: 0.3rem 0.8rem; font-size: 0.85rem; }
 .knop:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
 
-/* Statusbadges */
-.badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 99px; font-size: 0.8rem; font-weight: 600; color: #fff; }
-.badge-aangevraagd { background: var(--blauw); }
-.badge-afgewezen { background: var(--rood); }
-.badge-actief { background: var(--groen); }
-.badge-inactief { background: var(--grijs); }
+/* Statusbadges (zachte pill-stijl uit de guide) */
+.badge { display: inline-block; padding: 0.15rem 0.65rem; border-radius: 99px; font-size: 0.8rem; font-weight: 600; }
+.badge-aangevraagd { background: #FEF3C7; color: #B45309; }
+.badge-afgewezen { background: #FEE2E2; color: #B91C1C; }
+.badge-actief { background: #D1FAE5; color: #047857; }
+.badge-inactief { background: #E2E8F0; color: #475569; }
 
 /* Tabellen */
 .tabel-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }

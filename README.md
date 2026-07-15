@@ -1,6 +1,6 @@
-# KassaGenda — prototype
+# PlanAndPay — prototype
 
-Statisch HTML-prototype van SaaS-platform KassaGenda. Geen build-stap, geen
+Statisch HTML-prototype van SaaS-platform PlanAndPay. Geen build-stap, geen
 dependencies: direct hostbaar op GitHub Pages.
 
 ## Onderdelen
@@ -8,7 +8,7 @@ dependencies: direct hostbaar op GitHub Pages.
 | Pagina | Beschrijving |
 |---|---|
 | `index.html` | Openbare landingpage met tenant-inschrijving (verificatie + PDOK-adreslookup) |
-| `over.html` | Over KassaGenda |
+| `over.html` | Over PlanAndPay |
 | `admin.html` | Afgesloten beheer: aanvragen goedkeuren/afkeuren, tenants beheren |
 | `tenant.html?code=X` | Openbare boekingspagina van één actieve tenant (deelbaar / iframe) |
 | `afspraak.html?id=X` | Klantpagina: afspraak inzien, verzetten of annuleren |
@@ -24,7 +24,7 @@ dependencies: direct hostbaar op GitHub Pages.
 
 > De gebruikersnaam stamt uit de oorspronkelijke werktitel en is bewust
 > ongewijzigd gelaten (net als de interne opslagsleutels) bij de rebrand
-> naar KassaGenda.
+> naar PlanAndPay.
 
 > Let op: dit is een prototype. De "database" is localStorage (per browser),
 > de verificatiecodes worden op het scherm getoond en het admin-wachtwoord

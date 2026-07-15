@@ -10,9 +10,9 @@ const Kalender = (() => {
       return [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//KassaGenda//NL',
+        'PRODID:-//PlanAndPay//NL',
         'BEGIN:VEVENT',
-        `UID:${uid}@kassagenda`,
+        `UID:${uid}@planandpay`,
         `DTSTART:${stempel(start)}`,
         `DTEND:${stempel(eind)}`,
         `SUMMARY:${titel}`,

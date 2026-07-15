@@ -100,7 +100,7 @@
         <td>${t.contactpersoon}<br><small>${t.email} · ${t.telefoon}</small></td>
         <td>${datum(t.aangevraagdOp)}</td>
         <td>
-          <button class="knop knop-goed knop-klein" data-actie="goedkeuren" data-code="${t.code}">Goedkeuren</button>
+          <button class="knop knop-klein" data-actie="goedkeuren" data-code="${t.code}">Goedkeuren</button>
           <button class="knop knop-gevaar knop-klein" data-actie="afkeuren" data-code="${t.code}">Afkeuren</button>
         </td>
       </tr>`).join('');
