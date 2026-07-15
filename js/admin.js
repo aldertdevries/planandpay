@@ -11,13 +11,12 @@
     `<span class="badge badge-${status.toLowerCase()}">${status}</span>`;
   const datum = (iso) => new Date(iso).toLocaleDateString('nl-NL');
 
-  // --- Login ---
-  function isIngelogd() { return sessionStorage.getItem(SESSIE_SLEUTEL) === 'ja'; }
-
+  // --- Login (glijdende sessie van 1 uur) ---
   function toonApp() {
     el('login-kaart').classList.add('verborgen');
     el('admin-app').classList.remove('verborgen');
     el('admin-menu').classList.remove('verborgen');
+    el('sessie-wie').classList.remove('verborgen');
     toonView('dashboard');
   }
 
@@ -28,7 +27,7 @@
       el('fout-login').textContent = 'Onjuiste gebruikersnaam of wachtwoord.';
       return;
     }
-    sessionStorage.setItem(SESSIE_SLEUTEL, 'ja');
+    Sessie.begin(SESSIE_SLEUTEL);
     toonApp();
   });
   el('wachtwoord').addEventListener('keydown', (e) => {
@@ -37,9 +36,10 @@
 
   el('menu-uitloggen').addEventListener('click', (e) => {
     e.preventDefault();
-    sessionStorage.removeItem(SESSIE_SLEUTEL);
+    Sessie.eind(SESSIE_SLEUTEL);
     location.reload();
   });
+  Sessie.bewaak(SESSIE_SLEUTEL, () => location.reload());
 
   // --- Views ---
   function toonView(naam) {
@@ -117,8 +117,12 @@
       </div>`;
     el('view-aanvragen').querySelectorAll('button[data-actie]').forEach((knop) => {
       knop.addEventListener('click', () => {
-        if (knop.dataset.actie === 'goedkeuren') OberPoesDb.activeerTenant(knop.dataset.code);
-        else OberPoesDb.zetStatus(knop.dataset.code, 'Afgewezen');
+        if (knop.dataset.actie === 'goedkeuren') {
+          OberPoesDb.activeerTenant(knop.dataset.code);
+        } else {
+          if (!confirm('Weet u zeker dat u deze aanvraag wilt afkeuren?')) return;
+          OberPoesDb.zetStatus(knop.dataset.code, 'Afgewezen');
+        }
         renderAanvragen();
       });
     });
@@ -278,5 +282,5 @@
     });
   }
 
-  if (isIngelogd()) toonApp();
+  if (Sessie.actief(SESSIE_SLEUTEL)) toonApp();
 })();

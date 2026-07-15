@@ -50,7 +50,7 @@
       el('fout-login').textContent = 'Deze code klopt niet.';
       return;
     }
-    sessionStorage.setItem(SESSIE_SLEUTEL, 'ja');
+    Sessie.begin(SESSIE_SLEUTEL);
     toonApp();
   });
   el('login-code').addEventListener('keydown', (e) => {
@@ -58,9 +58,10 @@
   });
   el('menu-uitloggen').addEventListener('click', (e) => {
     e.preventDefault();
-    sessionStorage.removeItem(SESSIE_SLEUTEL);
+    Sessie.eind(SESSIE_SLEUTEL);
     location.reload();
   });
+  Sessie.bewaak(SESSIE_SLEUTEL, () => location.reload());
 
   // --- Views ---
   function toonView(naam) {
@@ -196,6 +197,7 @@
     el('agenda-volgende').addEventListener('click', () => { agendaPagina++; renderAgendaLijst(); });
     el('view-agenda').querySelectorAll('button[data-id]').forEach((k) => {
       k.addEventListener('click', () => {
+        if (!confirm('Weet u zeker dat u deze afspraak wilt annuleren?')) return;
         OberPoesDb.annuleerAfspraak(k.dataset.id);
         renderAgenda();
       });
@@ -484,9 +486,15 @@
     el('facturen-vorige').addEventListener('click', () => { facturenPagina--; renderFacturen(); });
     el('facturen-volgende').addEventListener('click', () => { facturenPagina++; renderFacturen(); });
     el('view-facturen').querySelectorAll('button[data-crediteer]').forEach((k) =>
-      k.addEventListener('click', () => { OberPoesDb.crediteerFactuur(k.dataset.crediteer); renderFacturen(); }));
+      k.addEventListener('click', () => {
+        if (!confirm('Weet u zeker dat u deze factuur wilt crediteren? Er komt een creditfactuur en de afspraak wordt weer vrijgegeven.')) return;
+        OberPoesDb.crediteerFactuur(k.dataset.crediteer); renderFacturen();
+      }));
     el('view-facturen').querySelectorAll('button[data-vervallen]').forEach((k) =>
-      k.addEventListener('click', () => { OberPoesDb.laatVervallen(k.dataset.vervallen); renderFacturen(); }));
+      k.addEventListener('click', () => {
+        if (!confirm('Weet u zeker dat u deze factuur wilt laten vervallen?')) return;
+        OberPoesDb.laatVervallen(k.dataset.vervallen); renderFacturen();
+      }));
   }
 
   // --- Openingstijden ---
@@ -827,6 +835,6 @@
     });
   }
 
-  if (sessionStorage.getItem(SESSIE_SLEUTEL) === 'ja') toonApp();
+  if (Sessie.actief(SESSIE_SLEUTEL)) toonApp();
   else el('login-kaart').classList.remove('verborgen');
 })();

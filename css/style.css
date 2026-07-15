@@ -50,6 +50,28 @@ h1, h2, h3 { font-family: var(--font-koppen); font-weight: 600; }
 }
 .site-header nav a.actief, .site-header nav a:hover { border-bottom: 3px solid var(--blauw); }
 
+/* Ingelogd-als label (admin) */
+.sessie-wie { margin-left: auto; color: var(--grijstekst); font-size: 0.9rem; font-weight: 500; }
+
+/* App-menu als tab-balk onder de header (admin + beheer), alleen op desktop.
+   Op mobiel blijft de hamburger het menu tonen. */
+@media (min-width: 641px) {
+  .header-inner { flex-wrap: wrap; }
+  #admin-menu, #beheer-menu {
+    order: 3; width: 100%; margin-top: 0.7rem;
+    border-top: 1px solid var(--rand);
+    display: flex; gap: 0.25rem;
+  }
+  #admin-menu a, #beheer-menu a {
+    margin: 0; padding: 0.7rem 0.9rem; border-bottom: 3px solid transparent; font-weight: 500;
+  }
+  #admin-menu a.actief, #beheer-menu a.actief,
+  #admin-menu a:hover, #beheer-menu a:hover {
+    border-bottom: 3px solid var(--blauw);
+  }
+  #admin-menu #menu-uitloggen, #beheer-menu #menu-uitloggen { margin-left: auto; }
+}
+
 /* Hero */
 .hero { text-align: center; padding: 3rem 0 2rem; }
 .hero h1 { font-size: 2.4rem; margin: 0 0 0.5rem; color: var(--charcoal); font-weight: 700; }
@@ -173,4 +195,5 @@ h1, h2, h3 { font-family: var(--font-koppen); font-weight: 600; }
   .knop-klein { width: auto; margin-bottom: 0; }
   .keuze-grid .knop, .keuze-grid .knop-klein { width: auto; margin-bottom: 0; }
   .keuze-grid button { min-height: 44px; }
+  .sessie-wie { display: none; }
 }

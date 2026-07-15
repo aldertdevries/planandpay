@@ -44,6 +44,7 @@
   }
 
   el('knop-annuleren').addEventListener('click', () => {
+    if (!confirm('Weet u zeker dat u uw afspraak wilt annuleren?')) return;
     if (OberPoesDb.annuleerAfspraak(afspraak.id)) {
       klaar('Uw afspraak is geannuleerd.');
     }
