@@ -716,6 +716,12 @@
         <button class="knop knop-secundair" id="knop-kopieer">Kopieer link</button>
         <span class="melding melding-goed verborgen" id="gekopieerd" role="status">Gekopieerd.</span>
         <div class="veld" style="margin-top: 1rem;">
+          <label for="embed-code">Insluitcode voor uw website (plak dit in een pagina om klanten direct te laten boeken)</label>
+          <textarea id="embed-code" readonly rows="4"></textarea>
+        </div>
+        <button class="knop knop-secundair" id="knop-embed-kopieer">Kopieer insluitcode</button>
+        <span class="melding melding-goed verborgen" id="embed-gekopieerd" role="status">Gekopieerd.</span>
+        <div class="veld" style="margin-top: 1rem;">
           <label>QR-code naar uw boekingspagina (voor posters, balie of website)</label><br>
           <img id="qr-code" alt="QR-code naar uw boekingspagina" width="220" height="220"
             crossorigin="anonymous"
@@ -755,6 +761,19 @@
       try { await navigator.clipboard.writeText(veld.value); }
       catch (e) { document.execCommand('copy'); }
       el('gekopieerd').classList.remove('verborgen');
+    });
+
+    const embedSnippet =
+      `<iframe src="${boekLink}" title="Afspraak maken bij ${t.naam}"\n`
+      + `  style="width:100%;max-width:480px;height:720px;border:1px solid #CBD5E1;border-radius:12px"\n`
+      + `  loading="lazy"></iframe>`;
+    el('embed-code').value = embedSnippet;
+    el('knop-embed-kopieer').addEventListener('click', async () => {
+      const veld = el('embed-code');
+      veld.select();
+      try { await navigator.clipboard.writeText(veld.value); }
+      catch (e) { document.execCommand('copy'); }
+      el('embed-gekopieerd').classList.remove('verborgen');
     });
     el('qr-code').addEventListener('error', () => {
       el('qr-code').classList.add('verborgen');
