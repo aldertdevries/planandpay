@@ -39,9 +39,9 @@ h1, h2, h3 { font-family: var(--font-koppen); font-weight: 600; }
   display: flex; justify-content: center; align-items: center;
 }
 .logo-icon svg { width: 100%; height: 100%; display: block; }
-.logo-plan { color: var(--blauw); }
-.logo-and { color: var(--charcoal); }
-.logo-pay { color: var(--groen); }
+.logo-plan, .merk-plan { color: var(--blauw); }
+.logo-and, .merk-and { color: var(--charcoal); }
+.logo-pay, .merk-pay { color: var(--groen); }
 .logo small { font-size: 0.9rem; color: var(--grijstekst); font-weight: 500; }
 
 .site-header nav a {
