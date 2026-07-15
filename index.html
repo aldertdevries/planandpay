@@ -36,7 +36,7 @@
         <form id="inschrijfformulier" novalidate>
           <div class="veld">
             <label for="naam">Naam van uw bedrijf</label>
-            <input id="naam" type="text" required>
+            <input id="naam" name="organization" type="text" autocomplete="organization" required>
             <span class="fout" aria-live="polite" id="fout-naam"></span>
           </div>
           <div class="veld">
@@ -47,18 +47,18 @@
           </div>
           <div class="veld">
             <label for="email">E-mailadres</label>
-            <input id="email" type="email" required>
+            <input id="email" name="email" type="email" autocomplete="email" required>
             <span class="fout" aria-live="polite" id="fout-email"></span>
           </div>
           <div class="velden-rij">
             <div class="veld">
               <label for="postcode">Postcode</label>
-              <input id="postcode" type="text" placeholder="1234 AB" required>
+              <input id="postcode" name="postal-code" type="text" autocomplete="postal-code" placeholder="1234 AB" required>
               <span class="fout" aria-live="polite" id="fout-postcode"></span>
             </div>
             <div class="veld">
               <label for="huisnummer">Huisnummer</label>
-              <input id="huisnummer" type="text" required>
+              <input id="huisnummer" name="address-line2" type="text" autocomplete="address-line2" required>
               <span class="fout" aria-live="polite" id="fout-huisnummer"></span>
             </div>
           </div>
@@ -80,7 +80,7 @@
           </div>
           <div class="veld">
             <label for="contactpersoon">Contactpersoon</label>
-            <input id="contactpersoon" type="text" required>
+            <input id="contactpersoon" name="name" type="text" autocomplete="name" required>
             <span class="fout" aria-live="polite" id="fout-contactpersoon"></span>
           </div>
           <div class="veld">
