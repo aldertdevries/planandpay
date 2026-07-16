@@ -458,18 +458,26 @@
   }
 
   // --- Facturen ---
+  const BETAALWIJZE_LABELS = { mollie: 'Mollie', pin: 'Pin', contant: 'Contant' };
+  const betaalwijzeLabel = (f) => BETAALWIJZE_LABELS[f.betaalwijze || 'mollie'];
   let facturenFilter = 'Alle';
+  let facturenBetaalwijzeFilter = 'Alle';
   let facturenZoek = '';
   let facturenPagina = 1;
 
   function renderFacturen() {
     const alle = OberPoesDb.facturenVoor(code);
-    const basis = facturenFilter === 'Alle' ? alle : alle.filter((f) => f.status === facturenFilter);
+    const naStatus = facturenFilter === 'Alle' ? alle : alle.filter((f) => f.status === facturenFilter);
+    const basis = facturenBetaalwijzeFilter === 'Alle'
+      ? naStatus
+      : naStatus.filter((f) => (f.betaalwijze || 'mollie') === facturenBetaalwijzeFilter);
     const pagina = Lijst.filterEnPagineer(basis, facturenZoek, ['nummer', 'klantNaam'], facturenPagina);
     facturenPagina = pagina.pagina;
     const lijst = pagina.items;
     const opties = ['Alle', 'Open', 'Betaald', 'Gecrediteerd', 'Vervallen', 'Credit']
       .map((s) => `<option ${s === facturenFilter ? 'selected' : ''}>${s}</option>`).join('');
+    const wijzeOpties = ['Alle', 'Mollie', 'Pin', 'Contant']
+      .map((s) => `<option value="${s === 'Alle' ? 'Alle' : s.toLowerCase()}" ${(s === 'Alle' ? 'Alle' : s.toLowerCase()) === facturenBetaalwijzeFilter ? 'selected' : ''}>${s}</option>`).join('');
     const badgeKlasse = { Open: 'badge-aangevraagd', Betaald: 'badge-actief',
       Vervallen: 'badge-inactief', Gecrediteerd: 'badge-afgewezen', Credit: 'badge-inactief' };
     const statusBadge = (s) => `<span class="badge ${badgeKlasse[s]}">${s}</span>`;
@@ -480,6 +488,7 @@
         <td>${f.klantNaam}</td>
         <td>${Facturatie.euro(Facturatie.totalen(f.regels).inclCent)}</td>
         <td>${statusBadge(f.status)}</td>
+        <td>${betaalwijzeLabel(f)}</td>
         <td>
           <a class="knop knop-secundair knop-klein" href="factuur.html?id=${f.id}" target="_blank">Rekening</a>
           <a class="knop knop-secundair knop-klein" href="betaal.html?factuur=${f.id}" target="_blank">Betaalpagina</a>
@@ -499,13 +508,17 @@
             <select id="filter-factuurstatus">${opties}</select>
           </div>
           <div class="veld">
+            <label for="filter-betaalwijze">Filter op betaalwijze</label>
+            <select id="filter-betaalwijze">${wijzeOpties}</select>
+          </div>
+          <div class="veld">
             <label for="zoek-facturen">Zoeken (nummer of klant)</label>
             <input id="zoek-facturen" type="search" value="${facturenZoek}">
           </div>
         </div>
         ${lijst.length === 0 ? '<p>Geen rekeningen gevonden.</p>' : `
         <div class="tabel-scroll"><table class="tabel">
-          <thead><tr><th scope="col">Nummer</th><th scope="col">Datum</th><th scope="col">Klant</th><th scope="col">Bedrag</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
+          <thead><tr><th scope="col">Nummer</th><th scope="col">Datum</th><th scope="col">Klant</th><th scope="col">Bedrag</th><th scope="col">Status</th><th scope="col">Betaalwijze</th><th scope="col"></th></tr></thead>
           <tbody>${rijen}</tbody>
         </table></div>
         <p><small>De betaalstatus wordt (in de demo) afgeleid van de Mollie-betaalpagina.</small></p>`}
@@ -517,6 +530,11 @@
       </div>`;
     el('filter-factuurstatus').addEventListener('change', (e) => {
       facturenFilter = e.target.value;
+      facturenPagina = 1;
+      renderFacturen();
+    });
+    el('filter-betaalwijze').addEventListener('change', (e) => {
+      facturenBetaalwijzeFilter = e.target.value;
       facturenPagina = 1;
       renderFacturen();
     });
@@ -532,9 +550,9 @@
     if (facturenCsv && !facturenCsv.disabled) facturenCsv.addEventListener('click', () => {
       const rijenCsv = alle.map((f) => [f.nummer,
         new Date(f.gemaaktOp).toLocaleDateString('nl-NL'), f.klantNaam || '', f.klantEmail || '',
-        Facturatie.euro(Facturatie.totalen(f.regels).inclCent), f.status, f.creditVoor || '']);
+        Facturatie.euro(Facturatie.totalen(f.regels).inclCent), f.status, betaalwijzeLabel(f), f.creditVoor || '']);
       Csv.download(`rekeningen-${code}.csv`, Csv.genereer(
-        ['Nummer', 'Datum', 'Klant', 'E-mail', 'Bedrag', 'Status', 'Credit voor'], rijenCsv));
+        ['Nummer', 'Datum', 'Klant', 'E-mail', 'Bedrag', 'Status', 'Betaalwijze', 'Credit voor'], rijenCsv));
     });
     el('facturen-vorige').addEventListener('click', () => { facturenPagina--; renderFacturen(); });
     el('facturen-volgende').addEventListener('click', () => { facturenPagina++; renderFacturen(); });
