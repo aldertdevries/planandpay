@@ -257,11 +257,20 @@
         <h3>Producten op deze rekening</h3>
         <div id="concept-lijst"></div>
         <div class="melding melding-info" id="factuur-totaal" role="status">Nog geen producten toegevoegd.</div>
+        <div class="veld" style="max-width: 260px;">
+          <label for="opbouw-betaalwijze">Betaalwijze</label>
+          <select id="opbouw-betaalwijze">
+            <option value="mollie">Mollie</option>
+            <option value="pin">Pin</option>
+            <option value="contant">Contant</option>
+          </select>
+        </div>
         <span class="fout" id="fout-factuur"></span>
         <button class="knop" id="knop-factureer">Rekening maken en mailen</button>
         <button class="knop knop-secundair" id="knop-opbouw-sluit">Sluiten</button>
       </div>`;
     el('factuur-opbouw').scrollIntoView({ behavior: 'smooth' });
+    el('opbouw-betaalwijze').value = huidigeTenant().standaardBetaalwijze || 'mollie';
 
     function renderConcept() {
       el('concept-lijst').innerHTML = conceptRegels.length === 0
@@ -330,7 +339,10 @@
         el('fout-factuur').textContent = 'Voeg minimaal één product toe.';
         return;
       }
-      const factuur = OberPoesDb.maakFactuur({ tenantCode: code, afspraakId, regels: conceptRegels });
+      const factuur = OberPoesDb.maakFactuur({
+        tenantCode: code, afspraakId, regels: conceptRegels,
+        betaalwijze: el('opbouw-betaalwijze').value,
+      });
       if (!factuur) {
         el('fout-factuur').textContent = 'Deze afspraak staat al op een rekening.';
         return;
@@ -343,23 +355,42 @@
   function toonMail(factuur) {
     const t = huidigeTenant();
     const totaal = Facturatie.totalen(factuur.regels);
+    const bedrag = Facturatie.euro(totaal.inclCent);
+    const bijlage =
+      `<strong>Bijlage:</strong>
+       <a href="factuur.html?id=${factuur.id}" target="_blank">rekening-${factuur.nummer}.pdf</a>`;
+    let inhoud;
+    if (factuur.betaalwijze === 'pin' || factuur.betaalwijze === 'contant') {
+      const wijzeLabel = factuur.betaalwijze === 'pin' ? 'pin' : 'contant';
+      inhoud = `
+        <strong>Aan:</strong> ${factuur.klantEmail}<br>
+        <strong>Onderwerp:</strong> Betaling ontvangen — rekening ${factuur.nummer}<br><br>
+        ${Berichten.naarHtml(Berichten.render(Berichten.voor(t, 'betaling'), {
+          naam: factuur.klantNaam,
+          tenant: t.naam,
+          nummer: factuur.nummer,
+          bedrag,
+        }))}<br><br>
+        Deze rekening is met ${wijzeLabel} voldaan en staat op Betaald.<br><br>
+        ${bijlage}`;
+    } else {
+      inhoud = `
+        <strong>Aan:</strong> ${factuur.klantEmail}<br>
+        <strong>Onderwerp:</strong> Rekening ${factuur.nummer} van ${t.naam}<br><br>
+        ${Berichten.naarHtml(Berichten.render(Berichten.voor(t, 'factuur'), {
+          naam: factuur.klantNaam,
+          tenant: t.naam,
+          nummer: factuur.nummer,
+          bedrag,
+        }))}<br><br>
+        <strong>Betaallink:</strong>
+        <a href="betaal.html?factuur=${factuur.id}" target="_blank">online betalen via Mollie</a><br>
+        ${bijlage}`;
+    }
     el('factuur-opbouw').innerHTML = `
       <div class="kaart">
         <h2>Mail verzonden (demo)</h2>
-        <div class="melding melding-info">
-          <strong>Aan:</strong> ${factuur.klantEmail}<br>
-          <strong>Onderwerp:</strong> Rekening ${factuur.nummer} van ${t.naam}<br><br>
-          ${Berichten.naarHtml(Berichten.render(Berichten.voor(t, 'factuur'), {
-            naam: factuur.klantNaam,
-            tenant: t.naam,
-            nummer: factuur.nummer,
-            bedrag: Facturatie.euro(totaal.inclCent),
-          }))}<br><br>
-          <strong>Betaallink:</strong>
-          <a href="betaal.html?factuur=${factuur.id}" target="_blank">online betalen via Mollie</a><br>
-          <strong>Bijlage:</strong>
-          <a href="factuur.html?id=${factuur.id}" target="_blank">rekening-${factuur.nummer}.pdf</a>
-        </div>
+        <div class="melding melding-info">${inhoud}</div>
         <button class="knop knop-secundair" id="knop-mail-sluit">Sluiten</button>
       </div>`;
     el('factuur-opbouw').scrollIntoView({ behavior: 'smooth' });
