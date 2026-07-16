@@ -65,7 +65,7 @@
 
   // --- Views ---
   function toonView(naam) {
-    ['agenda', 'regels', 'facturen', 'tijden', 'berichten', 'profiel'].forEach((v) => {
+    ['agenda', 'regels', 'facturen', 'tijden', 'berichten', 'klanten', 'profiel'].forEach((v) => {
       el('view-' + v).classList.toggle('verborgen', v !== naam);
       el('menu-' + v).classList.toggle('actief', v === naam);
       el('menu-' + v).setAttribute('aria-current', v === naam ? 'page' : 'false');
@@ -75,9 +75,10 @@
     if (naam === 'facturen') renderFacturen();
     if (naam === 'tijden') renderTijden();
     if (naam === 'berichten') renderBerichten();
+    if (naam === 'klanten') renderKlanten();
     if (naam === 'profiel') renderProfiel();
   }
-  ['agenda', 'regels', 'facturen', 'tijden', 'berichten', 'profiel'].forEach((v) => {
+  ['agenda', 'regels', 'facturen', 'tijden', 'berichten', 'klanten', 'profiel'].forEach((v) => {
     el('menu-' + v).addEventListener('click', (e) => { e.preventDefault(); toonView(v); });
   });
 
@@ -168,7 +169,10 @@
     el('view-agenda').innerHTML = `
       <div class="kaart">
         <h2>Agenda</h2>
-        <p><button class="knop knop-secundair knop-klein" id="knop-naar-week">Weekweergave</button></p>
+        <p>
+          <button class="knop knop-secundair knop-klein" id="knop-naar-week">Weekweergave</button>
+          <button class="knop knop-secundair knop-klein" id="knop-agenda-csv" ${alleAfspraken.length === 0 ? 'disabled' : ''}>Download CSV</button>
+        </p>
         <div class="veld" style="max-width: 260px;">
           <label for="zoek-agenda">Zoeken (naam of datum)</label>
           <input id="zoek-agenda" type="search" value="${agendaZoek}">
@@ -208,6 +212,15 @@
     el('knop-naar-week').addEventListener('click', () => {
       agendaWeergave = 'week';
       renderAgenda();
+    });
+    const agendaCsv = el('knop-agenda-csv');
+    if (agendaCsv && !agendaCsv.disabled) agendaCsv.addEventListener('click', () => {
+      const rijenCsv = alleAfspraken.map((a) => [a.datum, a.tijd, a.naam || '', a.email || '',
+        a.telefoon || '', a.straat || '', a.huisnummer || '', a.postcode || '', a.plaats || '',
+        a.extra || '', a.factuurId ? 'ja' : 'nee']);
+      Csv.download(`afspraken-${code}.csv`, Csv.genereer(
+        ['Datum', 'Tijd', 'Naam', 'E-mail', 'Telefoon', 'Straat', 'Huisnummer', 'Postcode', 'Plaats', 'Extra', 'Gefactureerd'],
+        rijenCsv));
     });
   }
 
@@ -448,6 +461,7 @@
     el('view-facturen').innerHTML = `
       <div class="kaart">
         <h2>Facturen</h2>
+        <p><button class="knop knop-secundair knop-klein" id="knop-facturen-csv" ${alle.length === 0 ? 'disabled' : ''}>Download CSV</button></p>
         <div class="velden-rij" style="max-width: 520px;">
           <div class="veld">
             <label for="filter-factuurstatus">Filter op status</label>
@@ -482,6 +496,14 @@
       const veld = el('zoek-facturen');
       veld.focus();
       veld.setSelectionRange(facturenZoek.length, facturenZoek.length);
+    });
+    const facturenCsv = el('knop-facturen-csv');
+    if (facturenCsv && !facturenCsv.disabled) facturenCsv.addEventListener('click', () => {
+      const rijenCsv = alle.map((f) => [f.nummer,
+        new Date(f.gemaaktOp).toLocaleDateString('nl-NL'), f.klantNaam || '', f.klantEmail || '',
+        Facturatie.euro(Facturatie.totalen(f.regels).inclCent), f.status, f.creditVoor || '']);
+      Csv.download(`facturen-${code}.csv`, Csv.genereer(
+        ['Nummer', 'Datum', 'Klant', 'E-mail', 'Bedrag', 'Status', 'Credit voor'], rijenCsv));
     });
     el('facturen-vorige').addEventListener('click', () => { facturenPagina--; renderFacturen(); });
     el('facturen-volgende').addEventListener('click', () => { facturenPagina++; renderFacturen(); });
@@ -698,6 +720,67 @@
     el('knop-bericht-standaard').addEventListener('click', () => bijwerken(null));
     el('knop-bericht-sluit').addEventListener('click', () => {
       el('bericht-detail').innerHTML = '';
+    });
+  }
+
+  // --- Klanten ---
+  let klantenZoek = '';
+  let klantenPagina = 1;
+
+  function renderKlanten() {
+    const alle = OberPoesDb.klantenVoor(code);
+    const pagina = Lijst.filterEnPagineer(alle, klantenZoek, ['naam', 'email', 'plaats'], klantenPagina);
+    klantenPagina = pagina.pagina;
+    const lijst = pagina.items;
+    const adres = (k) => `${k.straat || ''} ${k.huisnummer || ''}`.trim()
+      + (k.postcode || k.plaats ? `, ${k.postcode || ''} ${k.plaats || ''}`.trim() : '');
+    const rijen = lijst.map((k) => `
+      <tr>
+        <td><strong>${k.naam || ''}</strong></td>
+        <td>${adres(k)}</td>
+        <td>${k.email}</td>
+        <td>${k.telefoon || ''}</td>
+        <td>${new Date(k.laatste + 'T12:00:00').toLocaleDateString('nl-NL')}</td>
+        <td>${k.aantal}</td>
+      </tr>`).join('');
+    el('view-klanten').innerHTML = `
+      <div class="kaart">
+        <h2>Klanten</h2>
+        <p>
+          <button class="knop knop-secundair knop-klein" id="knop-klanten-csv" ${alle.length === 0 ? 'disabled' : ''}>Download CSV</button>
+        </p>
+        <div class="veld" style="max-width: 260px;">
+          <label for="zoek-klanten">Zoeken (naam, e-mail of plaats)</label>
+          <input id="zoek-klanten" type="search" value="${klantenZoek}">
+        </div>
+        ${lijst.length === 0 ? '<p>Nog geen klanten.</p>' : `
+        <div class="tabel-scroll"><table class="tabel">
+          <thead><tr><th scope="col">Naam</th><th scope="col">Adres</th><th scope="col">E-mail</th><th scope="col">Telefoon</th><th scope="col">Laatste afspraak</th><th scope="col">Aantal</th></tr></thead>
+          <tbody>${rijen}</tbody>
+        </table></div>`}
+        <p>
+          <button class="knop knop-secundair knop-klein" id="klanten-vorige" ${pagina.pagina <= 1 ? 'disabled' : ''}>‹ Vorige</button>
+          pagina ${pagina.pagina} van ${pagina.paginas} (${pagina.totaal} klanten)
+          <button class="knop knop-secundair knop-klein" id="klanten-volgende" ${pagina.pagina >= pagina.paginas ? 'disabled' : ''}>Volgende ›</button>
+        </p>
+      </div>`;
+    el('zoek-klanten').addEventListener('input', (e) => {
+      klantenZoek = e.target.value;
+      klantenPagina = 1;
+      renderKlanten();
+      const v = el('zoek-klanten');
+      v.focus();
+      v.setSelectionRange(klantenZoek.length, klantenZoek.length);
+    });
+    el('klanten-vorige').addEventListener('click', () => { klantenPagina--; renderKlanten(); });
+    el('klanten-volgende').addEventListener('click', () => { klantenPagina++; renderKlanten(); });
+    const csvKnop = el('knop-klanten-csv');
+    if (csvKnop && !csvKnop.disabled) csvKnop.addEventListener('click', () => {
+      const rijenCsv = alle.map((k) => [k.naam || '', k.straat || '', k.huisnummer || '',
+        k.postcode || '', k.plaats || '', k.email, k.telefoon || '', k.laatste, k.aantal]);
+      Csv.download(`klanten-${code}.csv`, Csv.genereer(
+        ['Naam', 'Straat', 'Huisnummer', 'Postcode', 'Plaats', 'E-mail', 'Telefoon', 'Laatste afspraak', 'Aantal afspraken'],
+        rijenCsv));
     });
   }
 

@@ -86,6 +86,24 @@ const OberPoesDb = (() => {
       const norm = String(tenantCode).toUpperCase();
       return lees().afspraken.filter((a) => a.tenantCode.toUpperCase() === norm);
     },
+    klantenVoor(tenantCode) {
+      const afspraken = this.afsprakenVoor(tenantCode)
+        .filter((a) => a.email && a.email.trim())
+        .slice()
+        .sort((a, b) => (a.datum + a.tijd).localeCompare(b.datum + b.tijd)); // oud → nieuw
+      const perEmail = {};
+      afspraken.forEach((a) => {
+        const email = a.email.trim().toLowerCase();
+        const k = perEmail[email] || (perEmail[email] = { email, aantal: 0 });
+        // afspraken lopen van oud naar nieuw: laatste toewijzing = meest recente
+        k.naam = a.naam; k.telefoon = a.telefoon;
+        k.straat = a.straat; k.huisnummer = a.huisnummer;
+        k.postcode = a.postcode; k.plaats = a.plaats;
+        k.laatste = a.datum;
+        k.aantal += 1;
+      });
+      return Object.values(perEmail).sort((a, b) => b.laatste.localeCompare(a.laatste));
+    },
     maakAfspraak(velden) {
       const db = lees();
       const norm = String(velden.tenantCode).toUpperCase();

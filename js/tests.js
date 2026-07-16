@@ -410,6 +410,45 @@ test('zetBerichten en zetFactuurVoettekst', () => {
   assert(na.berichten.boeking === 'Eigen' && na.factuurVoettekst === 'Betaal snel.');
 });
 
+// --- CSV ---
+test('Csv.genereer: kopregel, escaping en CRLF', () => {
+  const uit = Csv.genereer(['Naam', 'Opmerking'], [
+    ['Jan', 'gewoon'],
+    ['Piet; Klaas', 'met "quote"'],
+    ['Kees', 'regel1\nregel2'],
+  ]);
+  const regels = uit.split('\r\n');
+  assert(regels[0] === 'Naam;Opmerking', 'kop: ' + regels[0]);
+  assert(regels[1] === 'Jan;gewoon');
+  assert(regels[2] === '"Piet; Klaas";"met ""quote"""', 'kreeg: ' + regels[2]);
+  assert(uit.includes('"regel1\nregel2"'));
+});
+test('Csv.genereer: lege lijst geeft alleen kop', () => {
+  assert(Csv.genereer(['A', 'B'], []) === 'A;B');
+});
+
+// --- Klanten samenvatten ---
+test('klantenVoor: groepeert op e-mail, laatste gegevens en aantal', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Klant BV' });
+  OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-14', tijd: '10:00',
+    naam: 'Jan Jansen', email: 'JAN@x.nl', telefoon: '0611111111', straat: 'Dam', huisnummer: '1', postcode: '1012 JS', plaats: 'Amsterdam' });
+  OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-20', tijd: '09:00',
+    naam: 'Jan J. Jansen', email: 'jan@x.nl', telefoon: '0622222222', straat: 'Plein', huisnummer: '5', postcode: '3511 CJ', plaats: 'Utrecht' });
+  OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-16', tijd: '11:00',
+    naam: 'Fatima', email: 'fatima@x.nl', telefoon: '0633333333', straat: 'Markt', huisnummer: '2', postcode: '5038 EA', plaats: 'Tilburg' });
+  OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-17', tijd: '12:00',
+    naam: 'Zonder mail', email: '', telefoon: '0644444444' });
+  const klanten = OberPoesDb.klantenVoor(t.code);
+  assert(klanten.length === 2, 'twee klanten (mail-loze overgeslagen): ' + klanten.length);
+  const jan = klanten.find((k) => k.email === 'jan@x.nl');
+  assert(jan.aantal === 2, 'aantal: ' + jan.aantal);
+  assert(jan.naam === 'Jan J. Jansen' && jan.telefoon === '0622222222', 'laatste gegevens');
+  assert(jan.straat === 'Plein' && jan.plaats === 'Utrecht' && jan.laatste === '2026-07-20');
+  // Sortering: recentste klant (Jan, 20-7) vóór Fatima (16-7)
+  assert(klanten[0].email === 'jan@x.nl');
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;
