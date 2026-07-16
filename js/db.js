@@ -106,6 +106,18 @@ const OberPoesDb = (() => {
       return klant;
     },
     vindKlant(id) { return lees().klanten.find((k) => k.id === id) || null; },
+    zoekKlantOpContact(tenantCode, invoer) {
+      const tekst = String(invoer).trim();
+      if (!tekst) return null;
+      const klanten = this.klantenVoor(tenantCode);
+      if (tekst.includes('@')) {
+        const email = tekst.toLowerCase();
+        return klanten.find((k) => (k.email || '').trim().toLowerCase() === email) || null;
+      }
+      const cijfers = tekst.replace(/\D/g, '');
+      if (!cijfers) return null;
+      return klanten.find((k) => String(k.telefoon || '').replace(/\D/g, '') === cijfers) || null;
+    },
     klantenVoor(tenantCode) {
       const perEmail = {};
       // 1. Handmatig toegevoegde klanten als basis (aantal 0, geen datum)

@@ -529,6 +529,23 @@ test('vindKlant: vindt op id en geeft null bij onbekend', () => {
   assert(OberPoesDb.vindKlant('BESTAATNIET') === null, 'onbekend -> null');
 });
 
+test('zoekKlantOpContact: vindt op e-mail, hoofdletterongevoelig', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Contact BV' });
+  OberPoesDb.voegKlantToe({ tenantCode: t.code, naam: 'Piet', email: 'Piet@Voorbeeld.nl', telefoon: '0612345678' });
+  assert(OberPoesDb.zoekKlantOpContact(t.code, ' piet@voorbeeld.NL ').naam === 'Piet', 'e-mail match');
+  assert(OberPoesDb.zoekKlantOpContact(t.code, 'onbekend@x.nl') === null, 'onbekende e-mail -> null');
+});
+
+test('zoekKlantOpContact: vindt op telefoon met spaties/streepjes, null bij onbekend', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Contact BV' });
+  OberPoesDb.voegKlantToe({ tenantCode: t.code, naam: 'Piet', email: 'piet@x.nl', telefoon: '06-12 34 56 78' });
+  assert(OberPoesDb.zoekKlantOpContact(t.code, '0612345678').naam === 'Piet', 'telefoon match');
+  assert(OberPoesDb.zoekKlantOpContact(t.code, '0687654321') === null, 'onbekend nummer -> null');
+  assert(OberPoesDb.zoekKlantOpContact(t.code, '') === null, 'lege invoer -> null');
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;
