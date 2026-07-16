@@ -946,9 +946,13 @@
 
   function toonUitnodigingen(alleKlanten) {
     const t = huidigeTenant();
-    const boekLink = new URL(`tenant.html?code=${t.code}`, location.href).href;
     const gekozen = alleKlanten.filter((k) => klantenSelectie.has(k.email));
     const mails = gekozen.map((k) => {
+      const klant = OberPoesDb.voegKlantToe({
+        tenantCode: t.code, naam: k.naam, email: k.email, telefoon: k.telefoon,
+        straat: k.straat, huisnummer: k.huisnummer, postcode: k.postcode, plaats: k.plaats,
+      });
+      const boekLink = new URL(`tenant.html?code=${t.code}&klant=${klant.id}`, location.href).href;
       const tekst = Berichten.render(Berichten.voor(t, 'uitnodiging'), {
         naam: k.naam || 'klant', tenant: t.naam,
         link: `<a href="${boekLink}" target="_blank">${boekLink}</a>`,
