@@ -765,16 +765,18 @@
         <td>${klantAdres(k)}</td>
         <td>${k.email}</td>
         <td>${k.telefoon || ''}</td>
-        <td>${new Date(k.laatste + 'T12:00:00').toLocaleDateString('nl-NL')}</td>
+        <td>${k.laatste ? new Date(k.laatste + 'T12:00:00').toLocaleDateString('nl-NL') : '—'}</td>
         <td>${k.aantal}</td>
       </tr>`).join('');
     el('view-klanten').innerHTML = `
       <div class="kaart">
         <h2>Klanten</h2>
         <p>
+          <button class="knop knop-klein" id="knop-klant-toevoegen">Klant toevoegen</button>
           <button class="knop knop-klein" id="knop-uitnodigen" ${klantenSelectie.size === 0 ? 'disabled' : ''}>Uitnodiging sturen (${klantenSelectie.size})</button>
           <button class="knop knop-secundair knop-klein" id="knop-klanten-csv" ${alle.length === 0 ? 'disabled' : ''}>Download CSV</button>
         </p>
+        <div id="klant-formulier"></div>
         <div class="veld" style="max-width: 260px;">
           <label for="zoek-klanten">Zoeken (naam, e-mail of plaats)</label>
           <input id="zoek-klanten" type="search" value="${klantenZoek}">
@@ -836,6 +838,61 @@
     });
     const uitnodigKnop = el('knop-uitnodigen');
     if (uitnodigKnop && !uitnodigKnop.disabled) uitnodigKnop.addEventListener('click', () => toonUitnodigingen(alle));
+    el('knop-klant-toevoegen').addEventListener('click', renderKlantFormulier);
+  }
+
+  function renderKlantFormulier() {
+    let adres = null;
+    el('klant-formulier').innerHTML = `
+      <div class="kaart">
+        <h3>Nieuwe klant</h3>
+        <div class="velden-rij">
+          <div class="veld"><label for="nk-naam">Naam</label>
+            <input id="nk-naam" type="text" autocomplete="name">
+            <span class="fout" id="fout-nk-naam" aria-live="polite"></span></div>
+          <div class="veld"><label for="nk-email">E-mailadres</label>
+            <input id="nk-email" type="email" autocomplete="email">
+            <span class="fout" id="fout-nk-email" aria-live="polite"></span></div>
+        </div>
+        <div class="velden-rij">
+          <div class="veld"><label for="nk-telefoon">Telefoon (optioneel)</label>
+            <input id="nk-telefoon" type="tel" autocomplete="tel"></div>
+          <div class="veld"><label for="nk-postcode">Postcode</label>
+            <input id="nk-postcode" type="text" placeholder="1234 AB"></div>
+          <div class="veld"><label for="nk-huisnummer">Huisnummer</label>
+            <input id="nk-huisnummer" type="text"></div>
+        </div>
+        <div class="velden-rij">
+          <div class="veld"><label for="nk-straat">Straat</label>
+            <input id="nk-straat" type="text" readonly placeholder="vullen wij automatisch in"></div>
+          <div class="veld"><label for="nk-plaats">Plaats</label>
+            <input id="nk-plaats" type="text" readonly placeholder="vullen wij automatisch in"></div>
+        </div>
+        <span class="fout" id="fout-nk-adres" aria-live="polite"></span>
+        <button class="knop" id="knop-nk-opslaan">Opslaan</button>
+        <button class="knop knop-secundair" id="knop-nk-annuleren">Annuleren</button>
+      </div>`;
+    el('klant-formulier').scrollIntoView({ behavior: 'smooth' });
+    Adres.bind({
+      postcodeEl: el('nk-postcode'), huisnummerEl: el('nk-huisnummer'),
+      straatEl: el('nk-straat'), plaatsEl: el('nk-plaats'), foutEl: el('fout-nk-adres'),
+      bijAdres: (a) => { adres = a; },
+    });
+    el('knop-nk-annuleren').addEventListener('click', () => { el('klant-formulier').innerHTML = ''; });
+    el('knop-nk-opslaan').addEventListener('click', () => {
+      const naam = el('nk-naam').value.trim();
+      const email = el('nk-email').value.trim();
+      el('fout-nk-naam').textContent = Validatie.naam(naam) ? '' : 'Vul een naam in (minimaal 2 tekens).';
+      el('fout-nk-email').textContent = Validatie.email(email) ? '' : 'Vul een geldig e-mailadres in.';
+      if (!Validatie.naam(naam) || !Validatie.email(email)) return;
+      OberPoesDb.voegKlantToe({
+        tenantCode: code, naam, email, telefoon: el('nk-telefoon').value.trim(),
+        straat: adres ? adres.straat : '', plaats: adres ? adres.plaats : '',
+        postcode: el('nk-postcode').value.trim().toUpperCase(), huisnummer: el('nk-huisnummer').value.trim(),
+      });
+      el('klant-formulier').innerHTML = '';
+      renderKlanten();
+    });
   }
 
   function toonUitnodigingen(alleKlanten) {

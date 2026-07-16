@@ -456,6 +456,31 @@ test('klantenVoor: groepeert op e-mail, laatste gegevens en aantal', () => {
   assert(klanten[0].email === 'jan@x.nl');
 });
 
+// --- Handmatige klanten ---
+test('voegKlantToe: opslaan en upsert op e-mail (case-insensitief)', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Klant BV' });
+  OberPoesDb.voegKlantToe({ tenantCode: t.code, naam: 'Nieuwe Klant', email: 'Nieuw@x.nl', telefoon: '0611111111' });
+  OberPoesDb.voegKlantToe({ tenantCode: t.code, naam: 'Nieuwe Klant Bijgewerkt', email: 'nieuw@x.nl', telefoon: '0622222222' });
+  const handmatig = OberPoesDb.handmatigeKlantenVoor(t.code);
+  assert(handmatig.length === 1, 'upsert: geen duplicaat, kreeg ' + handmatig.length);
+  assert(handmatig[0].naam === 'Nieuwe Klant Bijgewerkt' && handmatig[0].telefoon === '0622222222');
+});
+test('klantenVoor: handmatige klant met aantal 0, en samenvoegen met afspraak', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Klant BV' });
+  OberPoesDb.voegKlantToe({ tenantCode: t.code, naam: 'Alleen Handmatig', email: 'hand@x.nl', telefoon: '0600000000' });
+  const klanten1 = OberPoesDb.klantenVoor(t.code);
+  const hand = klanten1.find((k) => k.email === 'hand@x.nl');
+  assert(hand && hand.aantal === 0 && hand.laatste === '', 'handmatig: aantal 0, lege datum');
+  // Afspraak op zelfde e-mail → samenvoegen, recentste gegevens winnen
+  OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-07-20', tijd: '10:00',
+    naam: 'Via Afspraak', email: 'HAND@x.nl', telefoon: '0699999999' });
+  const klanten2 = OberPoesDb.klantenVoor(t.code);
+  assert(klanten2.length === 1, 'één samengevoegde klant');
+  assert(klanten2[0].aantal === 1 && klanten2[0].naam === 'Via Afspraak' && klanten2[0].laatste === '2026-07-20');
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;

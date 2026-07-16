@@ -10,10 +10,11 @@ const OberPoesDb = (() => {
       if (data && Array.isArray(data.tenants)) {
         if (!Array.isArray(data.afspraken)) data.afspraken = [];
         if (!Array.isArray(data.facturen)) data.facturen = [];
+        if (!Array.isArray(data.klanten)) data.klanten = [];
         return data;
       }
     } catch (e) { /* corrupte data → verse database */ }
-    return { tenants: [], afspraken: [], facturen: [] };
+    return { tenants: [], afspraken: [], facturen: [], klanten: [] };
   }
   function schrijf(db) {
     localStorage.setItem(DB_SLEUTEL, JSON.stringify(db));
@@ -86,23 +87,48 @@ const OberPoesDb = (() => {
       const norm = String(tenantCode).toUpperCase();
       return lees().afspraken.filter((a) => a.tenantCode.toUpperCase() === norm);
     },
+    handmatigeKlantenVoor(tenantCode) {
+      const norm = String(tenantCode).toUpperCase();
+      return lees().klanten.filter((k) => k.tenantCode.toUpperCase() === norm);
+    },
+    voegKlantToe({ tenantCode, naam, email, telefoon, straat, huisnummer, postcode, plaats }) {
+      const db = lees();
+      const norm = String(tenantCode).toUpperCase();
+      const emailNorm = String(email).trim().toLowerCase();
+      let klant = db.klanten.find((k) => k.tenantCode.toUpperCase() === norm
+        && k.email.trim().toLowerCase() === emailNorm);
+      if (!klant) {
+        klant = { id: this.genereerCode(), tenantCode, email, aangemaaktOp: new Date().toISOString() };
+        db.klanten.push(klant);
+      }
+      Object.assign(klant, { naam, email, telefoon, straat, huisnummer, postcode, plaats });
+      schrijf(db);
+      return klant;
+    },
     klantenVoor(tenantCode) {
-      const afspraken = this.afsprakenVoor(tenantCode)
+      const perEmail = {};
+      // 1. Handmatig toegevoegde klanten als basis (aantal 0, geen datum)
+      this.handmatigeKlantenVoor(tenantCode).forEach((k) => {
+        const email = k.email.trim().toLowerCase();
+        perEmail[email] = { email, aantal: 0, laatste: '',
+          naam: k.naam, telefoon: k.telefoon, straat: k.straat,
+          huisnummer: k.huisnummer, postcode: k.postcode, plaats: k.plaats };
+      });
+      // 2. Afspraken (oud → nieuw): laatste gegevens winnen, aantal telt op
+      this.afsprakenVoor(tenantCode)
         .filter((a) => a.email && a.email.trim())
         .slice()
-        .sort((a, b) => (a.datum + a.tijd).localeCompare(b.datum + b.tijd)); // oud → nieuw
-      const perEmail = {};
-      afspraken.forEach((a) => {
-        const email = a.email.trim().toLowerCase();
-        const k = perEmail[email] || (perEmail[email] = { email, aantal: 0 });
-        // afspraken lopen van oud naar nieuw: laatste toewijzing = meest recente
-        k.naam = a.naam; k.telefoon = a.telefoon;
-        k.straat = a.straat; k.huisnummer = a.huisnummer;
-        k.postcode = a.postcode; k.plaats = a.plaats;
-        k.laatste = a.datum;
-        k.aantal += 1;
-      });
-      return Object.values(perEmail).sort((a, b) => b.laatste.localeCompare(a.laatste));
+        .sort((a, b) => (a.datum + a.tijd).localeCompare(b.datum + b.tijd))
+        .forEach((a) => {
+          const email = a.email.trim().toLowerCase();
+          const k = perEmail[email] || (perEmail[email] = { email, aantal: 0, laatste: '' });
+          k.naam = a.naam; k.telefoon = a.telefoon;
+          k.straat = a.straat; k.huisnummer = a.huisnummer;
+          k.postcode = a.postcode; k.plaats = a.plaats;
+          k.laatste = a.datum;
+          k.aantal += 1;
+        });
+      return Object.values(perEmail).sort((a, b) => (b.laatste || '').localeCompare(a.laatste || ''));
     },
     maakAfspraak(velden) {
       const db = lees();
