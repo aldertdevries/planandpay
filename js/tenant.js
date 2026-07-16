@@ -75,6 +75,22 @@
     bijAdres: (a) => { adres = a; },
   });
 
+  // Uitnodigings-prefill: ?klant=<id> vult bekende gegevens alvast in.
+  const klantId = new URLSearchParams(location.search).get('klant') || '';
+  const bekendeKlant = klantId ? OberPoesDb.vindKlant(klantId) : null;
+  if (bekendeKlant
+      && String(bekendeKlant.tenantCode).toUpperCase() === tenant.code.toUpperCase()) {
+    ['naam', 'email', 'telefoon', 'postcode', 'huisnummer'].forEach((veld) => {
+      if (bekendeKlant[veld]) el(veld).value = bekendeKlant[veld];
+    });
+    if (bekendeKlant.straat && bekendeKlant.plaats) {
+      el('straat').value = bekendeKlant.straat;
+      el('plaats').value = bekendeKlant.plaats;
+      adres = { straat: bekendeKlant.straat, plaats: bekendeKlant.plaats };
+    }
+    el('prefill-melding').classList.remove('verborgen');
+  }
+
   const veldRegels = {
     naam: [Validatie.naam, 'Vul uw naam in (minimaal 2 tekens).'],
     email: [Validatie.email, 'Vul een geldig e-mailadres in.'],
