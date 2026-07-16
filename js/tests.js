@@ -521,6 +521,14 @@ test('klantenVoor: handmatige klant met aantal 0, en samenvoegen met afspraak', 
   assert(klanten2[0].aantal === 1 && klanten2[0].naam === 'Via Afspraak' && klanten2[0].laatste === '2026-07-20');
 });
 
+test('vindKlant: vindt op id en geeft null bij onbekend', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Klant BV' });
+  const klant = OberPoesDb.voegKlantToe({ tenantCode: t.code, naam: 'Piet', email: 'piet@x.nl' });
+  assert(OberPoesDb.vindKlant(klant.id).email === 'piet@x.nl', 'vindt op id');
+  assert(OberPoesDb.vindKlant('BESTAATNIET') === null, 'onbekend -> null');
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;

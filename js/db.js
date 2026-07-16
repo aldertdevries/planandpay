@@ -105,6 +105,7 @@ const OberPoesDb = (() => {
       schrijf(db);
       return klant;
     },
+    vindKlant(id) { return lees().klanten.find((k) => k.id === id) || null; },
     klantenVoor(tenantCode) {
       const perEmail = {};
       // 1. Handmatig toegevoegde klanten als basis (aantal 0, geen datum)
