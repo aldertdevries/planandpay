@@ -1021,6 +1021,16 @@
         </div>
         <button class="knop" id="knop-mollie-opslaan">Mollie-id opslaan</button>
         <span class="melding melding-goed verborgen" id="mollie-opgeslagen" role="status">Opgeslagen.</span>
+        <div class="veld" style="margin-top: 1rem; max-width: 260px;">
+          <label for="standaard-betaalwijze">Standaard betaalwijze</label>
+          <select id="standaard-betaalwijze">
+            <option value="mollie">Mollie</option>
+            <option value="pin">Pin</option>
+            <option value="contant">Contant</option>
+          </select>
+        </div>
+        <button class="knop" id="knop-betaalwijze-opslaan">Standaard betaalwijze opslaan</button>
+        <span class="melding melding-goed verborgen" id="betaalwijze-opgeslagen" role="status">Opgeslagen.</span>
         <div class="velden-rij" style="margin-top: 1rem; max-width: 480px;">
           <div class="veld"><label for="reeks-prefix">Rekeningreeks — prefix</label>
             <input id="reeks-prefix" type="text" value="${(t.factuurReeks && t.factuurReeks.prefix) || new Date().getFullYear()}"></div>
@@ -1089,6 +1099,11 @@
     el('knop-mollie-opslaan').addEventListener('click', () => {
       OberPoesDb.zetMollieApiId(code, el('mollie-id').value.trim());
       el('mollie-opgeslagen').classList.remove('verborgen');
+    });
+    el('standaard-betaalwijze').value = t.standaardBetaalwijze || 'mollie';
+    el('knop-betaalwijze-opslaan').addEventListener('click', () => {
+      OberPoesDb.zetStandaardBetaalwijze(code, el('standaard-betaalwijze').value);
+      el('betaalwijze-opgeslagen').classList.remove('verborgen');
     });
     el('knop-reeks-opslaan').addEventListener('click', () => {
       const prefix = el('reeks-prefix').value.trim();
