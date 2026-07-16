@@ -10,7 +10,7 @@ dependencies: direct hostbaar op GitHub Pages.
 | `index.html` | Openbare landingpage met tenant-inschrijving (verificatie + PDOK-adreslookup) |
 | `over.html` | Over PlanAndPay |
 | `admin.html` | Afgesloten beheer: aanvragen goedkeuren/afkeuren, tenants beheren |
-| `tenant.html?code=X` | Openbare boekingspagina van één actieve tenant (deelbaar / iframe) |
+| `tenant.html?code=X` | Openbare boekingspagina van één actieve tenant (deelbaar / iframe); met `&klant=<id>` (uit de uitnodigingsmail) worden de klantgegevens alvast ingevuld |
 | `afspraak.html?id=X` | Klantpagina: afspraak inzien, verzetten of annuleren |
 | `beheer.html?code=X` | Beheer van één tenant: agenda, rekeningen (betaalwijze Mollie/Pin/Contant; pin en contant staan direct op Betaald), openingstijden, instellingen (login via e-mail-/sms-verificatiecode) |
 | `factuur.html?id=X` | Printbare rekening (logo, regels, btw-uitsplitsing) — "PDF-bijlage" in de demo |
