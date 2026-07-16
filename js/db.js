@@ -174,10 +174,15 @@ const OberPoesDb = (() => {
     zetBlokkades(code, blokkades) { return this.wijzig(code, { blokkades }); },
     zetFactuurRegels(code, regels) { return this.wijzig(code, { factuurRegels: regels }); },
     zetMollieApiId(code, id) { return this.wijzig(code, { mollieApiId: id }); },
-    maakFactuur({ tenantCode, afspraakId, regels }) {
+    zetStandaardBetaalwijze(code, wijze) {
+      const w = ['mollie', 'pin', 'contant'].includes(wijze) ? wijze : 'mollie';
+      return this.wijzig(code, { standaardBetaalwijze: w });
+    },
+    maakFactuur({ tenantCode, afspraakId, regels, betaalwijze }) {
       const db = lees();
       const afspraak = db.afspraken.find((a) => a.id === afspraakId);
       if (!afspraak || afspraak.factuurId) return null;
+      const wijze = ['mollie', 'pin', 'contant'].includes(betaalwijze) ? betaalwijze : 'mollie';
       const gemaaktOp = new Date().toISOString();
       const factuur = {
         id: this.genereerCode(),
@@ -187,7 +192,8 @@ const OberPoesDb = (() => {
         klantNaam: afspraak.naam,
         klantEmail: afspraak.email,
         regels,
-        status: 'Open',
+        betaalwijze: wijze,
+        status: wijze === 'mollie' ? 'Open' : 'Betaald',
         gemaaktOp,
       };
       db.facturen.push(factuur);
@@ -225,6 +231,7 @@ const OberPoesDb = (() => {
         klantNaam: origineel.klantNaam,
         klantEmail: origineel.klantEmail,
         regels: origineel.regels.map((r) => ({ ...r, bedragCent: -r.bedragCent })),
+        betaalwijze: origineel.betaalwijze || 'mollie',
         status: 'Credit',
         creditVoor: origineel.nummer,
         gemaaktOp: new Date().toISOString(),

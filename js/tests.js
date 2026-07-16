@@ -237,6 +237,46 @@ test('demo-data: actieve tenant heeft factuurregels en mollie-id', () => {
   assert(actief.factuurRegels.length === 2 && actief.mollieApiId === 'demo_mollie_123');
 });
 
+test('maakFactuur: pin en contant zetten status direct op Betaald', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Betaal BV' });
+  const a1 = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-08-01', tijd: '09:00', naam: 'K1', email: 'k1@x.nl' });
+  const a2 = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-08-01', tijd: '10:00', naam: 'K2', email: 'k2@x.nl' });
+  const fPin = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a1.id, regels: [], betaalwijze: 'pin' });
+  const fCon = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a2.id, regels: [], betaalwijze: 'contant' });
+  assert(fPin.betaalwijze === 'pin' && fPin.status === 'Betaald', 'pin: ' + JSON.stringify(fPin));
+  assert(fCon.betaalwijze === 'contant' && fCon.status === 'Betaald', 'contant: ' + JSON.stringify(fCon));
+});
+
+test('maakFactuur: mollie en zonder betaalwijze blijven Open (default mollie)', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Betaal BV' });
+  const a1 = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-08-02', tijd: '09:00', naam: 'K1', email: 'k1@x.nl' });
+  const a2 = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-08-02', tijd: '10:00', naam: 'K2', email: 'k2@x.nl' });
+  const fMollie = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a1.id, regels: [], betaalwijze: 'mollie' });
+  const fLeeg = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a2.id, regels: [] });
+  assert(fMollie.betaalwijze === 'mollie' && fMollie.status === 'Open', 'mollie: ' + JSON.stringify(fMollie));
+  assert(fLeeg.betaalwijze === 'mollie' && fLeeg.status === 'Open', 'leeg: ' + JSON.stringify(fLeeg));
+});
+
+test('zetStandaardBetaalwijze: opslaan en ongeldige waarde valt terug op mollie', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Betaal BV' });
+  OberPoesDb.zetStandaardBetaalwijze(t.code, 'contant');
+  assert(OberPoesDb.vindTenant(t.code).standaardBetaalwijze === 'contant', 'contant opgeslagen');
+  OberPoesDb.zetStandaardBetaalwijze(t.code, 'onzin');
+  assert(OberPoesDb.vindTenant(t.code).standaardBetaalwijze === 'mollie', 'ongeldig -> mollie');
+});
+
+test('crediteerFactuur: credit erft betaalwijze van origineel', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Betaal BV' });
+  const a = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-08-03', tijd: '09:00', naam: 'K1', email: 'k1@x.nl' });
+  const f = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a.id, regels: [{ naam: 'X', btw: 'hoog', bedragCent: 12100 }], betaalwijze: 'pin' });
+  const credit = OberPoesDb.crediteerFactuur(f.id);
+  assert(credit.betaalwijze === 'pin', 'credit betaalwijze: ' + JSON.stringify(credit));
+});
+
 // --- Blokkades ---
 test('sloten: eenmalige blokkade alleen op eigen datum', () => {
   const blok = [{ type: 'eenmalig', datum: '2026-07-13', van: '12:00', tot: '13:00' }];
