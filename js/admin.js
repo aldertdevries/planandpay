@@ -75,7 +75,7 @@
           ${tegel('Inactief', perStatus('Inactief'))}
           ${tegel('Afgewezen', perStatus('Afgewezen'))}
           ${tegel('Afspraken', OberPoesDb.alleAfspraken().length)}
-          ${tegel('Facturen (open/betaald)',
+          ${tegel('Rekeningen (open/betaald)',
             `${facturen.filter((f) => f.status === 'Open').length}/${facturen.filter((f) => f.status === 'Betaald').length}`)}
         </div>
       </div>

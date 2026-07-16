@@ -162,8 +162,8 @@
         <td>${a.straat} ${a.huisnummer}<br><small>${a.postcode} ${a.plaats}</small></td>
         <td>${a.email}<br><small>${a.telefoon}</small></td>
         <td>${a.factuurId
-          ? `<a class="badge badge-actief" href="factuur.html?id=${a.factuurId}" target="_blank">Gefactureerd</a>`
-          : `<button class="knop knop-klein" data-factureer="${a.id}">Factureren</button>
+          ? `<a class="badge badge-actief" href="factuur.html?id=${a.factuurId}" target="_blank">Op rekening</a>`
+          : `<button class="knop knop-klein" data-factureer="${a.id}">Rekening maken</button>
              <button class="knop knop-gevaar knop-klein" data-id="${a.id}">Annuleren</button>`}</td>
       </tr>`).join('');
     el('view-agenda').innerHTML = `
@@ -219,7 +219,7 @@
         a.telefoon || '', a.straat || '', a.huisnummer || '', a.postcode || '', a.plaats || '',
         a.extra || '', a.factuurId ? 'ja' : 'nee']);
       Csv.download(`afspraken-${code}.csv`, Csv.genereer(
-        ['Datum', 'Tijd', 'Naam', 'E-mail', 'Telefoon', 'Straat', 'Huisnummer', 'Postcode', 'Plaats', 'Extra', 'Gefactureerd'],
+        ['Datum', 'Tijd', 'Naam', 'E-mail', 'Telefoon', 'Straat', 'Huisnummer', 'Postcode', 'Plaats', 'Extra', 'Op rekening'],
         rijenCsv));
     });
   }
@@ -235,11 +235,11 @@
 
     el('factuur-opbouw').innerHTML = `
       <div class="kaart">
-        <h2>Factuur voor ${afspraak.naam} — ${afspraak.datum} om ${afspraak.tijd}</h2>
+        <h2>Rekening voor ${afspraak.naam} — ${afspraak.datum} om ${afspraak.tijd}</h2>
         <div class="veld">
-          <label for="regel-bron">Regel kiezen of nieuw maken</label>
+          <label for="regel-bron">Product kiezen of nieuw maken</label>
           <select id="regel-bron">
-            <option value="">— nieuwe regel —</option>
+            <option value="">— nieuw product —</option>
             ${bronOpties}
           </select>
         </div>
@@ -251,21 +251,21 @@
           <div class="veld"><label for="opbouw-bedrag">Bedrag incl. btw (€)</label>
             <input id="opbouw-bedrag" type="number" step="0.01" min="0"></div>
         </div>
-        <label><input type="checkbox" id="opbouw-bewaar"> Ook bewaren als voorgedefinieerde regel</label>
+        <label><input type="checkbox" id="opbouw-bewaar"> Ook bewaren als product</label>
         <span class="fout" id="fout-opbouw"></span><br>
-        <button class="knop knop-secundair" id="knop-opbouw-toevoegen">Toevoegen aan factuur</button>
-        <h3>Factuurregels op deze factuur</h3>
+        <button class="knop knop-secundair" id="knop-opbouw-toevoegen">Toevoegen aan rekening</button>
+        <h3>Producten op deze rekening</h3>
         <div id="concept-lijst"></div>
-        <div class="melding melding-info" id="factuur-totaal" role="status">Nog geen regels toegevoegd.</div>
+        <div class="melding melding-info" id="factuur-totaal" role="status">Nog geen producten toegevoegd.</div>
         <span class="fout" id="fout-factuur"></span>
-        <button class="knop" id="knop-factureer">Factureren en mailen</button>
+        <button class="knop" id="knop-factureer">Rekening maken en mailen</button>
         <button class="knop knop-secundair" id="knop-opbouw-sluit">Sluiten</button>
       </div>`;
     el('factuur-opbouw').scrollIntoView({ behavior: 'smooth' });
 
     function renderConcept() {
       el('concept-lijst').innerHTML = conceptRegels.length === 0
-        ? '<p><em>Nog geen regels toegevoegd.</em></p>'
+        ? '<p><em>Nog geen producten toegevoegd.</em></p>'
         : `<div class="tabel-scroll"><table class="tabel"><tbody>${conceptRegels.map((r, i) => `
             <tr>
               <td>${r.naam}</td>
@@ -280,7 +280,7 @@
         });
       });
       if (conceptRegels.length === 0) {
-        el('factuur-totaal').textContent = 'Nog geen regels toegevoegd.';
+        el('factuur-totaal').textContent = 'Nog geen producten toegevoegd.';
       } else {
         const tot = Facturatie.totalen(conceptRegels);
         el('factuur-totaal').innerHTML =
@@ -327,12 +327,12 @@
 
     el('knop-factureer').addEventListener('click', () => {
       if (conceptRegels.length === 0) {
-        el('fout-factuur').textContent = 'Voeg minimaal één factuurregel toe.';
+        el('fout-factuur').textContent = 'Voeg minimaal één product toe.';
         return;
       }
       const factuur = OberPoesDb.maakFactuur({ tenantCode: code, afspraakId, regels: conceptRegels });
       if (!factuur) {
-        el('fout-factuur').textContent = 'Deze afspraak is al gefactureerd.';
+        el('fout-factuur').textContent = 'Deze afspraak staat al op een rekening.';
         return;
       }
       renderAgenda();
@@ -348,7 +348,7 @@
         <h2>Mail verzonden (demo)</h2>
         <div class="melding melding-info">
           <strong>Aan:</strong> ${factuur.klantEmail}<br>
-          <strong>Onderwerp:</strong> Factuur ${factuur.nummer} van ${t.naam}<br><br>
+          <strong>Onderwerp:</strong> Rekening ${factuur.nummer} van ${t.naam}<br><br>
           ${Berichten.naarHtml(Berichten.render(Berichten.voor(t, 'factuur'), {
             naam: factuur.klantNaam,
             tenant: t.naam,
@@ -358,7 +358,7 @@
           <strong>Betaallink:</strong>
           <a href="betaal.html?factuur=${factuur.id}" target="_blank">online betalen via Mollie</a><br>
           <strong>Bijlage:</strong>
-          <a href="factuur.html?id=${factuur.id}" target="_blank">factuur-${factuur.nummer}.pdf</a>
+          <a href="factuur.html?id=${factuur.id}" target="_blank">rekening-${factuur.nummer}.pdf</a>
         </div>
         <button class="knop knop-secundair" id="knop-mail-sluit">Sluiten</button>
       </div>`;
@@ -386,13 +386,13 @@
       </tr>`).join('');
     el('view-regels').innerHTML = `
       <div class="kaart">
-        <h2>Factuurregels</h2>
-        ${regels.length === 0 ? '<p>Nog geen factuurregels gedefinieerd.</p>' : `
+        <h2>Producten</h2>
+        ${regels.length === 0 ? '<p>Nog geen producten gedefinieerd.</p>' : `
         <div class="tabel-scroll"><table class="tabel">
           <thead><tr><th scope="col">Naam</th><th scope="col">Btw</th><th scope="col">Bedrag (incl. btw)</th><th scope="col"></th></tr></thead>
           <tbody>${rijen}</tbody>
         </table></div>`}
-        <h3>Regel toevoegen</h3>
+        <h3>Product toevoegen</h3>
         <div class="velden-rij">
           <div class="veld"><label for="regel-naam">Naam</label>
             <input id="regel-naam" type="text"></div>
@@ -450,7 +450,7 @@
         <td>${Facturatie.euro(Facturatie.totalen(f.regels).inclCent)}</td>
         <td>${statusBadge(f.status)}</td>
         <td>
-          <a class="knop knop-secundair knop-klein" href="factuur.html?id=${f.id}" target="_blank">Factuur</a>
+          <a class="knop knop-secundair knop-klein" href="factuur.html?id=${f.id}" target="_blank">Rekening</a>
           <a class="knop knop-secundair knop-klein" href="betaal.html?factuur=${f.id}" target="_blank">Betaalpagina</a>
           ${['Open', 'Betaald'].includes(f.status)
             ? `<button class="knop knop-secundair knop-klein" data-crediteer="${f.id}">Crediteren</button>` : ''}
@@ -460,7 +460,7 @@
       </tr>`).join('');
     el('view-facturen').innerHTML = `
       <div class="kaart">
-        <h2>Facturen</h2>
+        <h2>Rekeningen</h2>
         <p><button class="knop knop-secundair knop-klein" id="knop-facturen-csv" ${alle.length === 0 ? 'disabled' : ''}>Download CSV</button></p>
         <div class="velden-rij" style="max-width: 520px;">
           <div class="veld">
@@ -472,7 +472,7 @@
             <input id="zoek-facturen" type="search" value="${facturenZoek}">
           </div>
         </div>
-        ${lijst.length === 0 ? '<p>Geen facturen gevonden.</p>' : `
+        ${lijst.length === 0 ? '<p>Geen rekeningen gevonden.</p>' : `
         <div class="tabel-scroll"><table class="tabel">
           <thead><tr><th scope="col">Nummer</th><th scope="col">Datum</th><th scope="col">Klant</th><th scope="col">Bedrag</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
           <tbody>${rijen}</tbody>
@@ -480,7 +480,7 @@
         <p><small>De betaalstatus wordt (in de demo) afgeleid van de Mollie-betaalpagina.</small></p>`}
         <p>
           <button class="knop knop-secundair knop-klein" id="facturen-vorige" ${pagina.pagina <= 1 ? 'disabled' : ''}>‹ Vorige</button>
-          pagina ${pagina.pagina} van ${pagina.paginas} (${pagina.totaal} facturen)
+          pagina ${pagina.pagina} van ${pagina.paginas} (${pagina.totaal} rekeningen)
           <button class="knop knop-secundair knop-klein" id="facturen-volgende" ${pagina.pagina >= pagina.paginas ? 'disabled' : ''}>Volgende ›</button>
         </p>
       </div>`;
@@ -502,19 +502,19 @@
       const rijenCsv = alle.map((f) => [f.nummer,
         new Date(f.gemaaktOp).toLocaleDateString('nl-NL'), f.klantNaam || '', f.klantEmail || '',
         Facturatie.euro(Facturatie.totalen(f.regels).inclCent), f.status, f.creditVoor || '']);
-      Csv.download(`facturen-${code}.csv`, Csv.genereer(
+      Csv.download(`rekeningen-${code}.csv`, Csv.genereer(
         ['Nummer', 'Datum', 'Klant', 'E-mail', 'Bedrag', 'Status', 'Credit voor'], rijenCsv));
     });
     el('facturen-vorige').addEventListener('click', () => { facturenPagina--; renderFacturen(); });
     el('facturen-volgende').addEventListener('click', () => { facturenPagina++; renderFacturen(); });
     el('view-facturen').querySelectorAll('button[data-crediteer]').forEach((k) =>
       k.addEventListener('click', () => {
-        if (!confirm('Weet u zeker dat u deze factuur wilt crediteren? Er komt een creditfactuur en de afspraak wordt weer vrijgegeven.')) return;
+        if (!confirm('Weet u zeker dat u deze rekening wilt crediteren? Er komt een creditrekening en de afspraak wordt weer vrijgegeven.')) return;
         OberPoesDb.crediteerFactuur(k.dataset.crediteer); renderFacturen();
       }));
     el('view-facturen').querySelectorAll('button[data-vervallen]').forEach((k) =>
       k.addEventListener('click', () => {
-        if (!confirm('Weet u zeker dat u deze factuur wilt laten vervallen?')) return;
+        if (!confirm('Weet u zeker dat u deze rekening wilt laten vervallen?')) return;
         OberPoesDb.laatVervallen(k.dataset.vervallen); renderFacturen();
       }));
   }
@@ -657,7 +657,7 @@
   const BERICHT_TYPES = [
     { type: 'boeking', label: 'Boekingsbevestiging', velden: '{naam} {tenant} {datum} {tijd}' },
     { type: 'verzet', label: 'Verzetbevestiging', velden: '{naam} {tenant} {datum} {tijd}' },
-    { type: 'factuur', label: 'Factuurmail', velden: '{naam} {tenant} {nummer} {bedrag}' },
+    { type: 'factuur', label: 'Rekeningmail', velden: '{naam} {tenant} {nummer} {bedrag}' },
     { type: 'betaling', label: 'Betalingsbevestiging', velden: '{naam} {tenant} {nummer} {bedrag}' },
     { type: 'uitnodiging', label: 'Uitnodiging afspraak', velden: '{naam} {tenant} {link}' },
   ];
@@ -961,10 +961,10 @@
         <span class="melding melding-goed verborgen" id="qr-gekopieerd" role="status">QR gekopieerd.</span>
         <span class="fout" id="qr-melding" aria-live="polite"></span>
         <div class="veld" style="margin-top: 1rem;">
-          <label for="factuur-voettekst">Factuurtekst (onderaan elke factuur)</label>
+          <label for="factuur-voettekst">Rekeningtekst (onderaan elke rekening)</label>
           <textarea id="factuur-voettekst" rows="3">${t.factuurVoettekst || Berichten.STANDAARD_FACTUURVOETTEKST}</textarea>
         </div>
-        <button class="knop" id="knop-voettekst-opslaan">Factuurtekst opslaan</button>
+        <button class="knop" id="knop-voettekst-opslaan">Rekeningtekst opslaan</button>
         <span class="melding melding-goed verborgen" id="voettekst-opgeslagen" role="status">Opgeslagen.</span>
         <div class="veld" style="margin-top: 1rem;">
           <label for="mollie-id">Mollie API id (voor betaallinks)</label>
@@ -973,7 +973,7 @@
         <button class="knop" id="knop-mollie-opslaan">Mollie-id opslaan</button>
         <span class="melding melding-goed verborgen" id="mollie-opgeslagen" role="status">Opgeslagen.</span>
         <div class="velden-rij" style="margin-top: 1rem; max-width: 480px;">
-          <div class="veld"><label for="reeks-prefix">Factuurreeks — prefix</label>
+          <div class="veld"><label for="reeks-prefix">Rekeningreeks — prefix</label>
             <input id="reeks-prefix" type="text" value="${(t.factuurReeks && t.factuurReeks.prefix) || new Date().getFullYear()}"></div>
           <div class="veld"><label for="reeks-volgende">Volgend nummer</label>
             <input id="reeks-volgende" type="number" min="1" value="${(t.factuurReeks && t.factuurReeks.volgende) || 1}"></div>

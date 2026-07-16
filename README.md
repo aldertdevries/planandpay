@@ -13,8 +13,8 @@ dependencies: direct hostbaar op GitHub Pages.
 | `tenant.html?code=X` | Openbare boekingspagina van één actieve tenant (deelbaar / iframe) |
 | `afspraak.html?id=X` | Klantpagina: afspraak inzien, verzetten of annuleren |
 | `beheer.html?code=X` | Beheer van één tenant: agenda, facturatie, openingstijden, profiel (login via e-mail-/sms-verificatiecode) |
-| `factuur.html?id=X` | Printbare factuur (logo, regels, btw-uitsplitsing) — "PDF-bijlage" in de demo |
-| `betaal.html?factuur=X` | Demo-betaalpagina (Mollie-simulatie) die de factuur op Betaald zet |
+| `factuur.html?id=X` | Printbare rekening (logo, regels, btw-uitsplitsing) — "PDF-bijlage" in de demo |
+| `betaal.html?factuur=X` | Demo-betaalpagina (Mollie-simulatie) die de rekening op Betaald zet |
 | `tests.html` | Browser-tests voor database-, agenda- en validatielogica |
 
 ## Demo-inloggegevens

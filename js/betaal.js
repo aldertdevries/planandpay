@@ -11,7 +11,7 @@
   }
 
   el('b-tenant').textContent = tenant.naam;
-  el('b-omschrijving').textContent = `Factuur ${factuur.nummer}`;
+  el('b-omschrijving').textContent = `Rekening ${factuur.nummer}`;
   el('b-bedrag').textContent = Facturatie.euro(Facturatie.totalen(factuur.regels).inclCent);
   el('b-mollie').textContent = tenant.mollieApiId
     ? `Betaling via Mollie (${tenant.mollieApiId}). Dit is een demo: er gaat geen echt geld van uw rekening.`
@@ -28,7 +28,7 @@
     el('b-open').classList.add('verborgen');
     el('b-betaald').classList.remove('verborgen');
     el('b-betaald').querySelector('.melding').textContent =
-      `U kunt deze factuur niet betalen. De status is: ${factuur.status}.`;
+      `U kunt deze rekening niet betalen. De status is: ${factuur.status}.`;
   }
 
   el('knop-betaal').addEventListener('click', () => {
@@ -43,7 +43,7 @@
     });
     el('betaal-mail-inhoud').innerHTML =
       `<strong>Aan:</strong> ${factuur.klantEmail}<br>
-      <strong>Onderwerp:</strong> Betaling ontvangen — factuur ${factuur.nummer}<br><br>
+      <strong>Onderwerp:</strong> Betaling ontvangen — rekening ${factuur.nummer}<br><br>
       ${Berichten.naarHtml(mailTekst)}`;
     el('betaal-mail').classList.remove('verborgen');
   });

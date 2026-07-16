@@ -11,7 +11,7 @@
   }
   const afspraak = OberPoesDb.alleAfspraken().find((a) => a.id === factuur.afspraakId);
 
-  document.title = `Factuur ${factuur.nummer} — ${tenant.naam}`;
+  document.title = `Rekening ${factuur.nummer} — ${tenant.naam}`;
   el('f-logo').src = tenant.logo;
   el('f-tenant').textContent = tenant.naam;
   el('f-tenant-adres').textContent =
@@ -20,8 +20,8 @@
   el('f-datum').textContent = new Date(factuur.gemaaktOp).toLocaleDateString('nl-NL');
   el('f-kenmerk').textContent = factuur.nummer;
   if (factuur.creditVoor) {
-    el('f-soort').textContent = 'CREDITFACTUUR';
-    el('f-credit').textContent = `Creditfactuur voor factuur ${factuur.creditVoor}.`;
+    el('f-soort').textContent = 'CREDITREKENING';
+    el('f-credit').textContent = `Creditrekening voor rekening ${factuur.creditVoor}.`;
     el('f-credit').classList.remove('verborgen');
   }
   el('f-voettekst').textContent = tenant.factuurVoettekst || Berichten.STANDAARD_FACTUURVOETTEKST;

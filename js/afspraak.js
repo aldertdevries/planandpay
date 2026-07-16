@@ -29,7 +29,7 @@
   if (afspraak.factuurId) {
     el('acties').classList.add('verborgen');
     el('gefactureerd-melding').textContent =
-      `U heeft al een factuur voor deze afspraak gekregen. `
+      `U heeft al een rekening voor deze afspraak gekregen. `
       + `Daarom kunt u de afspraak hier niet meer wijzigen. `
       + `Neem contact op met ${tenant.naam} via ${tenant.email}.`;
     el('gefactureerd-melding').classList.remove('verborgen');
