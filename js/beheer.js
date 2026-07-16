@@ -659,6 +659,7 @@
     { type: 'verzet', label: 'Verzetbevestiging', velden: '{naam} {tenant} {datum} {tijd}' },
     { type: 'factuur', label: 'Factuurmail', velden: '{naam} {tenant} {nummer} {bedrag}' },
     { type: 'betaling', label: 'Betalingsbevestiging', velden: '{naam} {tenant} {nummer} {bedrag}' },
+    { type: 'uitnodiging', label: 'Uitnodiging afspraak', velden: '{naam} {tenant} {link}' },
   ];
 
   function renderBerichten() {
@@ -726,18 +727,42 @@
   // --- Klanten ---
   let klantenZoek = '';
   let klantenPagina = 1;
+  let klantenSortVeld = 'laatste';
+  let klantenSortOp = false; // false = aflopend, true = oplopend
+  let klantenSelectie = new Set();
+
+  const klantAdres = (k) => `${k.straat || ''} ${k.huisnummer || ''}`.trim()
+    + (k.postcode || k.plaats ? `, ${k.postcode || ''} ${k.plaats || ''}`.trim() : '');
+
+  function sorteerKlanten(lijst) {
+    const num = klantenSortVeld === 'aantal';
+    const richting = klantenSortOp ? 1 : -1;
+    return lijst.slice().sort((a, b) => {
+      let va = a[klantenSortVeld]; let vb = b[klantenSortVeld];
+      if (klantenSortVeld === 'adres') { va = (a.plaats || '') + a.straat; vb = (b.plaats || '') + b.straat; }
+      if (num) return (va - vb) * richting;
+      return String(va || '').localeCompare(String(vb || ''), 'nl', { sensitivity: 'base' }) * richting;
+    });
+  }
 
   function renderKlanten() {
     const alle = OberPoesDb.klantenVoor(code);
-    const pagina = Lijst.filterEnPagineer(alle, klantenZoek, ['naam', 'email', 'plaats'], klantenPagina);
+    const gesorteerd = sorteerKlanten(alle);
+    const pagina = Lijst.filterEnPagineer(gesorteerd, klantenZoek, ['naam', 'email', 'plaats'], klantenPagina);
     klantenPagina = pagina.pagina;
     const lijst = pagina.items;
-    const adres = (k) => `${k.straat || ''} ${k.huisnummer || ''}`.trim()
-      + (k.postcode || k.plaats ? `, ${k.postcode || ''} ${k.plaats || ''}`.trim() : '');
+    const gefilterd = klantenZoek ? sorteerKlanten(alle).filter((k) =>
+      ['naam', 'email', 'plaats'].some((v) => String(k[v] || '').toLowerCase().includes(klantenZoek.toLowerCase())))
+      : alle;
+    const alleGeselecteerd = gefilterd.length > 0 && gefilterd.every((k) => klantenSelectie.has(k.email));
+    const pijl = (veld) => klantenSortVeld === veld ? (klantenSortOp ? ' ▲' : ' ▼') : '';
+    const kop = (veld, label) =>
+      `<th scope="col" class="sorteerbaar" data-sort="${veld}" style="cursor:pointer">${label}${pijl(veld)}</th>`;
     const rijen = lijst.map((k) => `
       <tr>
+        <td><input type="checkbox" class="klant-kies" data-email="${k.email}" ${klantenSelectie.has(k.email) ? 'checked' : ''}></td>
         <td><strong>${k.naam || ''}</strong></td>
-        <td>${adres(k)}</td>
+        <td>${klantAdres(k)}</td>
         <td>${k.email}</td>
         <td>${k.telefoon || ''}</td>
         <td>${new Date(k.laatste + 'T12:00:00').toLocaleDateString('nl-NL')}</td>
@@ -747,6 +772,7 @@
       <div class="kaart">
         <h2>Klanten</h2>
         <p>
+          <button class="knop knop-klein" id="knop-uitnodigen" ${klantenSelectie.size === 0 ? 'disabled' : ''}>Uitnodiging sturen (${klantenSelectie.size})</button>
           <button class="knop knop-secundair knop-klein" id="knop-klanten-csv" ${alle.length === 0 ? 'disabled' : ''}>Download CSV</button>
         </p>
         <div class="veld" style="max-width: 260px;">
@@ -755,7 +781,10 @@
         </div>
         ${lijst.length === 0 ? '<p>Nog geen klanten.</p>' : `
         <div class="tabel-scroll"><table class="tabel">
-          <thead><tr><th scope="col">Naam</th><th scope="col">Adres</th><th scope="col">E-mail</th><th scope="col">Telefoon</th><th scope="col">Laatste afspraak</th><th scope="col">Aantal</th></tr></thead>
+          <thead><tr>
+            <th scope="col"><input type="checkbox" id="kies-alle" ${alleGeselecteerd ? 'checked' : ''} title="Alles selecteren"></th>
+            ${kop('naam', 'Naam')}${kop('adres', 'Adres')}${kop('email', 'E-mail')}${kop('telefoon', 'Telefoon')}${kop('laatste', 'Laatste afspraak')}${kop('aantal', 'Aantal')}
+          </tr></thead>
           <tbody>${rijen}</tbody>
         </table></div>`}
         <p>
@@ -763,7 +792,30 @@
           pagina ${pagina.pagina} van ${pagina.paginas} (${pagina.totaal} klanten)
           <button class="knop knop-secundair knop-klein" id="klanten-volgende" ${pagina.pagina >= pagina.paginas ? 'disabled' : ''}>Volgende ›</button>
         </p>
-      </div>`;
+      </div>
+      <div id="uitnodiging-mails"></div>`;
+    el('view-klanten').querySelectorAll('th.sorteerbaar').forEach((th) => {
+      th.addEventListener('click', () => {
+        const veld = th.dataset.sort;
+        if (klantenSortVeld === veld) klantenSortOp = !klantenSortOp;
+        else { klantenSortVeld = veld; klantenSortOp = true; }
+        renderKlanten();
+      });
+    });
+    el('view-klanten').querySelectorAll('.klant-kies').forEach((c) => {
+      c.addEventListener('change', () => {
+        if (c.checked) klantenSelectie.add(c.dataset.email);
+        else klantenSelectie.delete(c.dataset.email);
+        renderKlanten();
+      });
+    });
+    if (el('kies-alle')) el('kies-alle').addEventListener('change', (e) => {
+      gefilterd.forEach((k) => {
+        if (e.target.checked) klantenSelectie.add(k.email);
+        else klantenSelectie.delete(k.email);
+      });
+      renderKlanten();
+    });
     el('zoek-klanten').addEventListener('input', (e) => {
       klantenZoek = e.target.value;
       klantenPagina = 1;
@@ -776,12 +828,39 @@
     el('klanten-volgende').addEventListener('click', () => { klantenPagina++; renderKlanten(); });
     const csvKnop = el('knop-klanten-csv');
     if (csvKnop && !csvKnop.disabled) csvKnop.addEventListener('click', () => {
-      const rijenCsv = alle.map((k) => [k.naam || '', k.straat || '', k.huisnummer || '',
+      const rijenCsv = gesorteerd.map((k) => [k.naam || '', k.straat || '', k.huisnummer || '',
         k.postcode || '', k.plaats || '', k.email, k.telefoon || '', k.laatste, k.aantal]);
       Csv.download(`klanten-${code}.csv`, Csv.genereer(
         ['Naam', 'Straat', 'Huisnummer', 'Postcode', 'Plaats', 'E-mail', 'Telefoon', 'Laatste afspraak', 'Aantal afspraken'],
         rijenCsv));
     });
+    const uitnodigKnop = el('knop-uitnodigen');
+    if (uitnodigKnop && !uitnodigKnop.disabled) uitnodigKnop.addEventListener('click', () => toonUitnodigingen(alle));
+  }
+
+  function toonUitnodigingen(alleKlanten) {
+    const t = huidigeTenant();
+    const boekLink = new URL(`tenant.html?code=${t.code}`, location.href).href;
+    const gekozen = alleKlanten.filter((k) => klantenSelectie.has(k.email));
+    const mails = gekozen.map((k) => {
+      const tekst = Berichten.render(Berichten.voor(t, 'uitnodiging'), {
+        naam: k.naam || 'klant', tenant: t.naam,
+        link: `<a href="${boekLink}" target="_blank">${boekLink}</a>`,
+      });
+      return `<div class="melding melding-info" role="status">
+        <strong>Aan:</strong> ${k.email}<br>
+        <strong>Onderwerp:</strong> Uitnodiging om een afspraak te maken — ${t.naam}<br><br>
+        ${Berichten.naarHtml(tekst)}
+      </div>`;
+    }).join('');
+    el('uitnodiging-mails').innerHTML = `
+      <div class="kaart">
+        <h2>Uitnodigingen verzonden (demo) — ${gekozen.length} klant(en)</h2>
+        ${mails}
+        <button class="knop knop-secundair" id="knop-uitnodiging-sluit">Sluiten</button>
+      </div>`;
+    el('uitnodiging-mails').scrollIntoView({ behavior: 'smooth' });
+    el('knop-uitnodiging-sluit').addEventListener('click', () => { el('uitnodiging-mails').innerHTML = ''; });
   }
 
   // --- Profiel ---

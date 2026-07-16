@@ -5,6 +5,7 @@ const Berichten = {
     verzet: 'Beste {naam},\n\nUw afspraak is verzet. U komt nu op {datum} om {tijd} bij {tenant}.\n\nMet vriendelijke groet,\n{tenant}',
     factuur: 'Beste {naam},\n\nHierbij sturen wij u factuur {nummer}. Het bedrag is {bedrag}. U kunt makkelijk online betalen met de betaallink in dit bericht.\n\nMet vriendelijke groet,\n{tenant}',
     betaling: 'Beste {naam},\n\nWij hebben uw betaling van {bedrag} ontvangen voor factuur {nummer}. Bedankt!\n\nMet vriendelijke groet,\n{tenant}',
+    uitnodiging: 'Beste {naam},\n\nMaak eenvoudig online een afspraak bij {tenant} via deze link: {link}\n\nTot ziens!\n{tenant}',
   },
   STANDAARD_FACTUURVOETTEKST:
     'Betaal dit bedrag graag binnen 14 dagen. Vermeld daarbij het factuurnummer.',

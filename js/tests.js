@@ -427,6 +427,13 @@ test('Csv.genereer: lege lijst geeft alleen kop', () => {
   assert(Csv.genereer(['A', 'B'], []) === 'A;B');
 });
 
+test('berichten: uitnodiging met {link}', () => {
+  assert(Berichten.STANDAARD.uitnodiging.includes('{link}'));
+  const uit = Berichten.render(Berichten.voor({}, 'uitnodiging'),
+    { naam: 'Jan', tenant: 'Kapper', link: 'https://x/boek' });
+  assert(uit.includes('Jan') && uit.includes('Kapper') && uit.includes('https://x/boek'));
+});
+
 // --- Klanten samenvatten ---
 test('klantenVoor: groepeert op e-mail, laatste gegevens en aantal', () => {
   OberPoesDb.wisAlles();
