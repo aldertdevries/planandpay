@@ -227,6 +227,16 @@ const OberPoesDb = (() => {
       schrijf(db);
       return factuur;
     },
+    markeerBetaald(id, betaalwijze) {
+      if (!['pin', 'contant'].includes(betaalwijze)) return null;
+      const db = lees();
+      const factuur = db.facturen.find((f) => f.id === id);
+      if (!factuur || factuur.status !== 'Open') return null;
+      factuur.status = 'Betaald';
+      factuur.betaalwijze = betaalwijze;
+      schrijf(db);
+      return factuur;
+    },
     zetFactuurReeks(code, prefix, volgende) {
       return this.wijzig(code, { factuurReeks: { prefix, volgende } });
     },

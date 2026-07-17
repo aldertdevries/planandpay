@@ -546,6 +546,33 @@ test('zoekKlantOpContact: vindt op telefoon met spaties/streepjes, null bij onbe
   assert(OberPoesDb.zoekKlantOpContact(t.code, '') === null, 'lege invoer -> null');
 });
 
+test('markeerBetaald: open mollie-rekening wordt Betaald met pin of contant', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Markeer BV' });
+  const a1 = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-09-01', tijd: '09:00', naam: 'K1', email: 'k1@x.nl' });
+  const a2 = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-09-01', tijd: '10:00', naam: 'K2', email: 'k2@x.nl' });
+  const f1 = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a1.id, regels: [], betaalwijze: 'mollie' });
+  const f2 = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a2.id, regels: [], betaalwijze: 'mollie' });
+  const naPin = OberPoesDb.markeerBetaald(f1.id, 'pin');
+  assert(naPin.status === 'Betaald' && naPin.betaalwijze === 'pin', 'pin: ' + JSON.stringify(naPin));
+  const naContant = OberPoesDb.markeerBetaald(f2.id, 'contant');
+  assert(naContant.status === 'Betaald' && naContant.betaalwijze === 'contant', 'contant: ' + JSON.stringify(naContant));
+  assert(OberPoesDb.vindFactuur(f1.id).betaalwijze === 'pin', 'opgeslagen');
+});
+
+test('markeerBetaald: weigert niet-open rekening en ongeldige wijze', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Markeer BV' });
+  const a = OberPoesDb.maakAfspraak({ tenantCode: t.code, datum: '2026-09-02', tijd: '09:00', naam: 'K1', email: 'k1@x.nl' });
+  const f = OberPoesDb.maakFactuur({ tenantCode: t.code, afspraakId: a.id, regels: [], betaalwijze: 'mollie' });
+  assert(OberPoesDb.markeerBetaald(f.id, 'mollie') === null, 'mollie is geen geldige wijze');
+  assert(OberPoesDb.markeerBetaald(f.id, 'onzin') === null, 'onzin -> null');
+  assert(OberPoesDb.vindFactuur(f.id).status === 'Open', 'status onveranderd na ongeldige wijze');
+  OberPoesDb.zetFactuurStatus(f.id, 'Betaald');
+  assert(OberPoesDb.markeerBetaald(f.id, 'pin') === null, 'al Betaald -> null');
+  assert(OberPoesDb.markeerBetaald('BESTAATNIET', 'pin') === null, 'onbekende id -> null');
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;
