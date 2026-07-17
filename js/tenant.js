@@ -75,20 +75,25 @@
     bijAdres: (a) => { adres = a; },
   });
 
+  // Vult bekende klantgegevens in (uitnodigingslink en klant-aanmelding).
+  function vulKlantIn(klant) {
+    ['naam', 'email', 'telefoon', 'postcode', 'huisnummer'].forEach((veld) => {
+      if (klant[veld]) el(veld).value = klant[veld];
+    });
+    if (klant.straat && klant.plaats) {
+      el('straat').value = klant.straat;
+      el('plaats').value = klant.plaats;
+      adres = { straat: klant.straat, plaats: klant.plaats };
+    }
+    el('prefill-melding').classList.remove('verborgen');
+  }
+
   // Uitnodigings-prefill: ?klant=<id> vult bekende gegevens alvast in.
   const klantId = new URLSearchParams(location.search).get('klant') || '';
   const bekendeKlant = klantId ? OberPoesDb.vindKlant(klantId) : null;
   if (bekendeKlant
       && String(bekendeKlant.tenantCode).toUpperCase() === tenant.code.toUpperCase()) {
-    ['naam', 'email', 'telefoon', 'postcode', 'huisnummer'].forEach((veld) => {
-      if (bekendeKlant[veld]) el(veld).value = bekendeKlant[veld];
-    });
-    if (bekendeKlant.straat && bekendeKlant.plaats) {
-      el('straat').value = bekendeKlant.straat;
-      el('plaats').value = bekendeKlant.plaats;
-      adres = { straat: bekendeKlant.straat, plaats: bekendeKlant.plaats };
-    }
-    el('prefill-melding').classList.remove('verborgen');
+    vulKlantIn(bekendeKlant);
   }
 
   const veldRegels = {
