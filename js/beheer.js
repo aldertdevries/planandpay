@@ -611,10 +611,14 @@
     actieMenus.forEach((menu) => menu.addEventListener('toggle', () => {
       if (menu.open) actieMenus.forEach((ander) => { if (ander !== menu) ander.open = false; });
     }));
-    el('view-facturen').addEventListener('click', (e) => {
-      if (e.target.closest('details.actie-menu')) return;
-      actieMenus.forEach((menu) => { menu.open = false; });
-    });
+    if (!el('view-facturen').dataset.menuSluiter) {
+      el('view-facturen').dataset.menuSluiter = 'ja';
+      el('view-facturen').addEventListener('click', (e) => {
+        if (e.target.closest('details.actie-menu')) return;
+        el('view-facturen').querySelectorAll('details.actie-menu[open]')
+          .forEach((menu) => { menu.open = false; });
+      });
+    }
   }
 
   // --- Openingstijden ---
