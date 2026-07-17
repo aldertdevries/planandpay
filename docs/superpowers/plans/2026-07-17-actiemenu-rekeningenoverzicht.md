@@ -86,11 +86,17 @@ toevoegen (nog binnen `renderFacturen`, vóór de sluitaccolade `}` van de funct
     actieMenus.forEach((menu) => menu.addEventListener('toggle', () => {
       if (menu.open) actieMenus.forEach((ander) => { if (ander !== menu) ander.open = false; });
     }));
-    el('view-facturen').addEventListener('click', (e) => {
-      if (e.target.closest('details.actie-menu')) return;
-      actieMenus.forEach((menu) => { menu.open = false; });
-    });
+    if (!el('view-facturen').dataset.menuSluiter) {
+      el('view-facturen').dataset.menuSluiter = 'ja';
+      el('view-facturen').addEventListener('click', (e) => {
+        if (e.target.closest('details.actie-menu')) return;
+        el('view-facturen').querySelectorAll('details.actie-menu[open]')
+          .forEach((menu) => { menu.open = false; });
+      });
+    }
 ```
+
+(Let op: de klik-listener eenmalig binden — `#view-facturen` blijft bestaan tussen re-renders, dus een onvoorwaardelijke `addEventListener` zou zich opstapelen. De handler bevraagt de menu's live op klikmoment.)
 
 - [ ] **Step 3: Voeg de menu-styling toe**
 
