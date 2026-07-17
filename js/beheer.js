@@ -464,6 +464,7 @@
   let facturenBetaalwijzeFilter = 'Alle';
   let facturenZoek = '';
   let facturenPagina = 1;
+  let facturenMailHtml = '';
 
   function renderFacturen() {
     const alle = OberPoesDb.facturenVoor(code);
@@ -492,6 +493,9 @@
         <td>
           <a class="knop knop-secundair knop-klein" href="factuur.html?id=${f.id}" target="_blank">Rekening</a>
           <a class="knop knop-secundair knop-klein" href="betaal.html?factuur=${f.id}" target="_blank">Betaalpagina</a>
+          ${f.status === 'Open' && (f.betaalwijze || 'mollie') === 'mollie'
+            ? `<button class="knop knop-secundair knop-klein" data-betaald="${f.id}" data-wijze="pin">Betaald (pin)</button>
+               <button class="knop knop-secundair knop-klein" data-betaald="${f.id}" data-wijze="contant">Betaald (contant)</button>` : ''}
           ${['Open', 'Betaald'].includes(f.status)
             ? `<button class="knop knop-secundair knop-klein" data-crediteer="${f.id}">Crediteren</button>` : ''}
           ${f.status === 'Open'
@@ -501,6 +505,7 @@
     el('view-facturen').innerHTML = `
       <div class="kaart">
         <h2>Rekeningen</h2>
+        ${facturenMailHtml}
         <p><button class="knop knop-secundair knop-klein" id="knop-facturen-csv" ${alle.length === 0 ? 'disabled' : ''}>Download CSV</button></p>
         <div class="velden-rij" style="max-width: 520px;">
           <div class="veld">
@@ -566,6 +571,31 @@
         if (!confirm('Weet u zeker dat u deze rekening wilt laten vervallen?')) return;
         OberPoesDb.laatVervallen(k.dataset.vervallen); renderFacturen();
       }));
+    el('view-facturen').querySelectorAll('button[data-betaald]').forEach((k) =>
+      k.addEventListener('click', () => {
+        const wijze = k.dataset.wijze;
+        if (!confirm(`Weet u zeker dat u deze rekening als betaald (${wijze}) wilt markeren?`)) return;
+        const f = OberPoesDb.markeerBetaald(k.dataset.betaald, wijze);
+        if (!f) return;
+        const t = huidigeTenant();
+        const bedrag = Facturatie.euro(Facturatie.totalen(f.regels).inclCent);
+        facturenMailHtml = `
+          <div class="melding melding-info">
+            <strong>Mail verzonden (demo)</strong><br>
+            <strong>Aan:</strong> ${f.klantEmail}<br>
+            <strong>Onderwerp:</strong> Betaling ontvangen — rekening ${f.nummer}<br><br>
+            ${Berichten.naarHtml(Berichten.render(Berichten.voor(t, 'betaling'), {
+              naam: f.klantNaam, tenant: t.naam, nummer: f.nummer, bedrag,
+            }))}<br><br>
+            <button class="knop knop-secundair knop-klein" id="knop-facturen-mail-sluit">Sluiten</button>
+          </div>`;
+        renderFacturen();
+      }));
+    const facturenMailSluit = el('knop-facturen-mail-sluit');
+    if (facturenMailSluit) facturenMailSluit.addEventListener('click', () => {
+      facturenMailHtml = '';
+      renderFacturen();
+    });
   }
 
   // --- Openingstijden ---
