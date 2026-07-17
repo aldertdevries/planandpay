@@ -582,7 +582,7 @@
         const wijze = k.dataset.wijze;
         if (!confirm(`Weet u zeker dat u deze rekening als betaald (${wijze}) wilt markeren?`)) return;
         const f = OberPoesDb.markeerBetaald(k.dataset.betaald, wijze);
-        if (!f) return;
+        if (!f) { renderFacturen(); return; }
         const t = huidigeTenant();
         const bedrag = Facturatie.euro(Facturatie.totalen(f.regels).inclCent);
         facturenMailHtml = `
