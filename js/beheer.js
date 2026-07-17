@@ -155,6 +155,12 @@
     const pagina = Lijst.filterEnPagineer(alleAfspraken, agendaZoek, ['naam', 'datum'], agendaPagina);
     agendaPagina = pagina.pagina;
     const afspraken = pagina.items;
+    const factuurBadge = (a) => {
+      const f = OberPoesDb.vindFactuur(a.factuurId);
+      const betaald = f && f.status === 'Betaald';
+      return `<a class="badge ${betaald ? 'badge-actief' : 'badge-aangevraagd'}" `
+        + `href="factuur.html?id=${a.factuurId}" target="_blank">${betaald ? 'Betaald' : 'Op rekening'}</a>`;
+    };
     const rijen = afspraken.map((a) => `
       <tr>
         <td><strong>${a.datum}</strong><br>${a.tijd}</td>
@@ -162,7 +168,7 @@
         <td>${a.straat} ${a.huisnummer}<br><small>${a.postcode} ${a.plaats}</small></td>
         <td>${a.email}<br><small>${a.telefoon}</small></td>
         <td>${a.factuurId
-          ? `<a class="badge badge-actief" href="factuur.html?id=${a.factuurId}" target="_blank">Op rekening</a>`
+          ? factuurBadge(a)
           : `<button class="knop knop-klein" data-factureer="${a.id}">Rekening maken</button>
              <button class="knop knop-gevaar knop-klein" data-id="${a.id}">Annuleren</button>`}</td>
       </tr>`).join('');
