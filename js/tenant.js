@@ -96,6 +96,53 @@
     vulKlantIn(bekendeKlant);
   }
 
+  // Klant-aanmelding: bekend contact -> verificatiecode -> gegevens invullen.
+  let aanmeldCode = '';
+  let aanmeldKlant = null;
+  el('aanmeld-open').addEventListener('click', (e) => {
+    e.preventDefault();
+    el('aanmeld-stap-contact').classList.remove('verborgen');
+    el('aanmeld-contact').focus();
+  });
+  el('knop-aanmeld-code').addEventListener('click', () => {
+    const invoer = el('aanmeld-contact').value.trim();
+    const kanaal = invoer.includes('@') ? 'e-mail' : 'sms';
+    aanmeldKlant = invoer ? OberPoesDb.zoekKlantOpContact(tenant.code, invoer) : null;
+    if (!aanmeldKlant) {
+      el('fout-aanmeld-contact').textContent = invoer.includes('@')
+        ? 'Wij kennen dit e-mailadres nog niet. Vul uw gegevens gewoon hieronder in.'
+        : 'Wij kennen dit telefoonnummer nog niet. Vul uw gegevens gewoon hieronder in.';
+      return;
+    }
+    el('fout-aanmeld-contact').textContent = '';
+    aanmeldCode = String(Math.floor(100000 + Math.random() * 900000));
+    el('aanmeld-demo-code').innerHTML =
+      `<strong>Demo:</strong> in een echte omgeving ontvangt u deze code per ${kanaal}.<br>`
+      + `Code: <span class="demo-code">${aanmeldCode}</span>`;
+    el('aanmeld-code').value = '';
+    el('fout-aanmeld-code').textContent = '';
+    el('aanmeld-stap-contact').classList.add('verborgen');
+    el('aanmeld-stap-code').classList.remove('verborgen');
+  });
+  el('aanmeld-andere-invoer').addEventListener('click', (e) => {
+    e.preventDefault();
+    aanmeldCode = '';
+    aanmeldKlant = null;
+    el('aanmeld-stap-code').classList.add('verborgen');
+    el('aanmeld-stap-contact').classList.remove('verborgen');
+  });
+  el('knop-aanmeld-verifieer').addEventListener('click', () => {
+    if (!aanmeldCode || el('aanmeld-code').value.trim() !== aanmeldCode) {
+      el('fout-aanmeld-code').textContent = 'Deze code klopt niet.';
+      return;
+    }
+    vulKlantIn(aanmeldKlant);
+    el('aanmeld-blok').classList.add('verborgen');
+  });
+  el('aanmeld-code').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); el('knop-aanmeld-verifieer').click(); }
+  });
+
   const veldRegels = {
     naam: [Validatie.naam, 'Vul uw naam in (minimaal 2 tekens).'],
     email: [Validatie.email, 'Vul een geldig e-mailadres in.'],

@@ -51,6 +51,28 @@
         <h2>Uw gegevens</h2>
         <p class="melding melding-info" id="gekozen-slot"></p>
         <p class="melding melding-info verborgen" id="prefill-melding" role="status">Uw gegevens zijn alvast ingevuld — klopt alles nog?</p>
+        <div id="aanmeld-blok">
+          <p>Al eerder een afspraak gemaakt?
+            <a href="#" id="aanmeld-open">Haal uw gegevens op.</a></p>
+          <div class="verborgen" id="aanmeld-stap-contact">
+            <div class="veld">
+              <label for="aanmeld-contact">E-mailadres of telefoonnummer</label>
+              <input id="aanmeld-contact" type="text">
+            </div>
+            <span class="fout" aria-live="polite" id="fout-aanmeld-contact"></span><br>
+            <button type="button" class="knop knop-secundair" id="knop-aanmeld-code">Stuur code</button>
+          </div>
+          <div class="verborgen" id="aanmeld-stap-code">
+            <p class="melding melding-info" id="aanmeld-demo-code"></p>
+            <div class="veld">
+              <label for="aanmeld-code">Vul de code in</label>
+              <input id="aanmeld-code" type="text" inputmode="numeric" autocomplete="one-time-code">
+            </div>
+            <span class="fout" aria-live="polite" id="fout-aanmeld-code"></span><br>
+            <button type="button" class="knop knop-secundair" id="knop-aanmeld-verifieer">Bevestig</button>
+            <a href="#" id="aanmeld-andere-invoer">Andere invoer</a>
+          </div>
+        </div>
         <form id="afspraakformulier" novalidate>
           <div class="veld">
             <label for="naam">Naam</label>
