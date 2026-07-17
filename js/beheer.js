@@ -497,15 +497,20 @@
         <td>${statusBadge(f.status)}</td>
         <td>${betaalwijzeLabel(f)}</td>
         <td>
-          <a class="knop knop-secundair knop-klein" href="factuur.html?id=${f.id}" target="_blank">Rekening</a>
-          <a class="knop knop-secundair knop-klein" href="betaal.html?factuur=${f.id}" target="_blank">Betaalpagina</a>
-          ${f.status === 'Open' && (f.betaalwijze || 'mollie') === 'mollie'
-            ? `<button class="knop knop-secundair knop-klein" data-betaald="${f.id}" data-wijze="pin">Betaald (pin)</button>
-               <button class="knop knop-secundair knop-klein" data-betaald="${f.id}" data-wijze="contant">Betaald (contant)</button>` : ''}
-          ${['Open', 'Betaald'].includes(f.status)
-            ? `<button class="knop knop-secundair knop-klein" data-crediteer="${f.id}">Crediteren</button>` : ''}
-          ${f.status === 'Open'
-            ? `<button class="knop knop-gevaar knop-klein" data-vervallen="${f.id}">Vervallen</button>` : ''}
+          <details class="actie-menu">
+            <summary aria-label="Acties">☰</summary>
+            <div class="actie-menu-lijst">
+              <a href="factuur.html?id=${f.id}" target="_blank">Rekening bekijken</a>
+              <a href="betaal.html?factuur=${f.id}" target="_blank">Betaalpagina</a>
+              ${f.status === 'Open' && (f.betaalwijze || 'mollie') === 'mollie'
+                ? `<button data-betaald="${f.id}" data-wijze="pin">Betaald (pin)</button>
+                   <button data-betaald="${f.id}" data-wijze="contant">Betaald (contant)</button>` : ''}
+              ${['Open', 'Betaald'].includes(f.status)
+                ? `<button data-crediteer="${f.id}">Crediteren</button>` : ''}
+              ${f.status === 'Open'
+                ? `<button class="gevaar" data-vervallen="${f.id}">Vervallen</button>` : ''}
+            </div>
+          </details>
         </td>
       </tr>`).join('');
     el('view-facturen').innerHTML = `
@@ -601,6 +606,14 @@
     if (facturenMailSluit) facturenMailSluit.addEventListener('click', () => {
       facturenMailHtml = '';
       renderFacturen();
+    });
+    const actieMenus = el('view-facturen').querySelectorAll('details.actie-menu');
+    actieMenus.forEach((menu) => menu.addEventListener('toggle', () => {
+      if (menu.open) actieMenus.forEach((ander) => { if (ander !== menu) ander.open = false; });
+    }));
+    el('view-facturen').addEventListener('click', (e) => {
+      if (e.target.closest('details.actie-menu')) return;
+      actieMenus.forEach((menu) => { menu.open = false; });
     });
   }
 
