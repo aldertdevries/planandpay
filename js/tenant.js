@@ -106,8 +106,12 @@
   });
   el('knop-aanmeld-code').addEventListener('click', () => {
     const invoer = el('aanmeld-contact').value.trim();
+    if (!invoer) {
+      el('fout-aanmeld-contact').textContent = 'Vul eerst uw e-mailadres of telefoonnummer in.';
+      return;
+    }
     const kanaal = invoer.includes('@') ? 'e-mail' : 'sms';
-    aanmeldKlant = invoer ? OberPoesDb.zoekKlantOpContact(tenant.code, invoer) : null;
+    aanmeldKlant = OberPoesDb.zoekKlantOpContact(tenant.code, invoer);
     if (!aanmeldKlant) {
       el('fout-aanmeld-contact').textContent = invoer.includes('@')
         ? 'Wij kennen dit e-mailadres nog niet. Vul uw gegevens gewoon hieronder in.'
@@ -141,6 +145,9 @@
   });
   el('aanmeld-code').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); el('knop-aanmeld-verifieer').click(); }
+  });
+  el('aanmeld-contact').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); el('knop-aanmeld-code').click(); }
   });
 
   const veldRegels = {
