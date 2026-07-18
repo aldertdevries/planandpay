@@ -573,6 +573,20 @@ test('markeerBetaald: weigert niet-open rekening en ongeldige wijze', () => {
   assert(OberPoesDb.markeerBetaald('BESTAATNIET', 'pin') === null, 'onbekende id -> null');
 });
 
+test('datumPlus: dagen, weken, maanden en maand-overloop', () => {
+  assert(Agenda.datumPlus('2026-07-17', 10, 'dagen') === '2026-07-27', 'dagen');
+  assert(Agenda.datumPlus('2026-07-17', 6, 'weken') === '2026-08-28', 'weken');
+  assert(Agenda.datumPlus('2026-11-15', 3, 'maanden') === '2027-02-15', 'maanden over jaargrens');
+  assert(Agenda.datumPlus('2026-01-31', 1, 'maanden') === '2026-03-03', 'maand-overloop (feb 2026 heeft 28 dagen)');
+});
+
+test('vensterStart: nooit eerder dan morgen', () => {
+  assert(Agenda.vensterStart('2026-09-01', '2026-07-17') === '2026-08-29', 'ver vooruit: doeldatum - 3 dagen');
+  assert(Agenda.vensterStart('2026-07-10', '2026-07-17') === '2026-07-18', 'doeldatum in verleden -> morgen');
+  assert(Agenda.vensterStart('2026-07-17', '2026-07-17') === '2026-07-18', 'doeldatum vandaag -> morgen');
+  assert(Agenda.vensterStart('2026-07-19', '2026-07-17') === '2026-07-18', 'doeldatum overmorgen -> morgen');
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;

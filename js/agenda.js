@@ -31,6 +31,22 @@ const Agenda = (() => {
       }
       return dagen;
     },
+    datumPlus(datumIso, aantal, eenheid) {
+      const d = new Date(datumIso + 'T12:00:00');
+      if (eenheid === 'weken') d.setDate(d.getDate() + aantal * 7);
+      else if (eenheid === 'maanden') d.setMonth(d.getMonth() + aantal);
+      else d.setDate(d.getDate() + aantal);
+      return d.toISOString().slice(0, 10);
+    },
+    vensterStart(doeldatumIso, vandaagIso) {
+      const morgen = new Date(vandaagIso + 'T12:00:00');
+      morgen.setDate(morgen.getDate() + 1);
+      const morgenIso = morgen.toISOString().slice(0, 10);
+      const start = new Date(doeldatumIso + 'T12:00:00');
+      start.setDate(start.getDate() - 3);
+      const startIso = start.toISOString().slice(0, 10);
+      return startIso > morgenIso ? startIso : morgenIso;
+    },
     maandagVan(datumIso) {
       const d = new Date(datumIso + 'T12:00:00');
       d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
