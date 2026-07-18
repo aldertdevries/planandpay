@@ -587,6 +587,19 @@ test('vensterStart: nooit eerder dan morgen', () => {
   assert(Agenda.vensterStart('2026-07-19', '2026-07-17') === '2026-07-18', 'doeldatum overmorgen -> morgen');
 });
 
+test('zetKlantVervolgTermijn: opslaan, ongeldig geweigerd', () => {
+  OberPoesDb.wisAlles();
+  const t = OberPoesDb.voegToe({ naam: 'Vervolg BV' });
+  const k = OberPoesDb.voegKlantToe({ tenantCode: t.code, naam: 'Piet', email: 'piet@x.nl' });
+  const na = OberPoesDb.zetKlantVervolgTermijn(k.id, { aantal: 6, eenheid: 'weken' });
+  assert(na.vervolgTermijn.aantal === 6 && na.vervolgTermijn.eenheid === 'weken', 'opgeslagen');
+  assert(OberPoesDb.vindKlant(k.id).vervolgTermijn.eenheid === 'weken', 'teruglezen');
+  assert(OberPoesDb.zetKlantVervolgTermijn(k.id, { aantal: 0, eenheid: 'weken' }) === null, 'aantal 0 -> null');
+  assert(OberPoesDb.zetKlantVervolgTermijn(k.id, { aantal: 2, eenheid: 'jaren' }) === null, 'onbekende eenheid -> null');
+  assert(OberPoesDb.vindKlant(k.id).vervolgTermijn.aantal === 6, 'onveranderd na ongeldige poging');
+  assert(OberPoesDb.zetKlantVervolgTermijn('BESTAATNIET', { aantal: 2, eenheid: 'weken' }) === null, 'onbekende klant -> null');
+});
+
 OberPoesDb.wisAlles();
 
 const geslaagd = resultaten.filter((r) => r.ok).length;

@@ -118,6 +118,17 @@ const OberPoesDb = (() => {
       if (!cijfers) return null;
       return klanten.find((k) => String(k.telefoon || '').replace(/\D/g, '') === cijfers) || null;
     },
+    zetKlantVervolgTermijn(klantId, termijn) {
+      const geldig = termijn && Number.isInteger(termijn.aantal) && termijn.aantal >= 1
+        && ['dagen', 'weken', 'maanden'].includes(termijn.eenheid);
+      if (!geldig) return null;
+      const db = lees();
+      const klant = db.klanten.find((k) => k.id === klantId);
+      if (!klant) return null;
+      klant.vervolgTermijn = { aantal: termijn.aantal, eenheid: termijn.eenheid };
+      schrijf(db);
+      return klant;
+    },
     klantenVoor(tenantCode) {
       const perEmail = {};
       // 1. Handmatig toegevoegde klanten als basis (aantal 0, geen datum)
