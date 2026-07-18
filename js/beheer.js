@@ -398,9 +398,171 @@
         <h2>Mail verzonden (demo)</h2>
         <div class="melding melding-info">${inhoud}</div>
         <button class="knop knop-secundair" id="knop-mail-sluit">Sluiten</button>
+      </div>
+      <div class="kaart" id="vervolg-blok">
+        <h3>Vervolgafspraak inplannen</h3>
+        <div class="velden-rij" style="max-width: 360px;">
+          <div class="veld"><label for="vervolg-aantal">Over</label>
+            <input id="vervolg-aantal" type="number" min="1"></div>
+          <div class="veld"><label for="vervolg-eenheid">Eenheid</label>
+            <select id="vervolg-eenheid">
+              <option value="dagen">dagen</option>
+              <option value="weken">weken</option>
+              <option value="maanden">maanden</option>
+            </select></div>
+        </div>
+        <span class="fout" id="fout-vervolg" aria-live="polite"></span><br>
+        <button class="knop knop-secundair" id="knop-vervolg-zoek">Zoek dagen</button>
+        <div id="vervolg-dagen"></div>
+        <div id="vervolg-tijden"></div>
+        <div id="vervolg-klaar"></div>
       </div>`;
     el('factuur-opbouw').scrollIntoView({ behavior: 'smooth' });
-    el('knop-mail-sluit').addEventListener('click', () => { el('factuur-opbouw').innerHTML = ''; });
+    el('knop-mail-sluit').addEventListener('click', () => { renderAgenda(); });
+    bindVervolg(factuur, t);
+  }
+
+  // Vervolgafspraak: termijn per klant onthouden, dag rond de doeldatum kiezen.
+  function bindVervolg(factuur, t) {
+    const bronAfspraak = OberPoesDb.afsprakenVoor(code).find((a) => a.id === factuur.afspraakId);
+    if (!bronAfspraak) { el('vervolg-blok').classList.add('verborgen'); return; }
+    const klant = OberPoesDb.voegKlantToe({
+      tenantCode: t.code, naam: bronAfspraak.naam, email: bronAfspraak.email,
+      telefoon: bronAfspraak.telefoon, straat: bronAfspraak.straat,
+      huisnummer: bronAfspraak.huisnummer, postcode: bronAfspraak.postcode,
+      plaats: bronAfspraak.plaats,
+    });
+    if (klant.vervolgTermijn) {
+      el('vervolg-aantal').value = klant.vervolgTermijn.aantal;
+      el('vervolg-eenheid').value = klant.vervolgTermijn.eenheid;
+    }
+
+    let vensterVan = null;
+    let gekozenDatum = null;
+
+    const datumLabel = (iso) => {
+      const d = new Date(iso + 'T12:00:00');
+      return `${Agenda.DAG_NAMEN[d.getDay()].slice(0, 2)} ${d.getDate()}/${d.getMonth() + 1}`;
+    };
+    const morgen = () => {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().slice(0, 10);
+    };
+    const schuifVenster = (dagen) => {
+      const d = new Date(vensterVan + 'T12:00:00');
+      d.setDate(d.getDate() + dagen);
+      vensterVan = d.toISOString().slice(0, 10);
+      if (vensterVan < morgen()) vensterVan = morgen();
+    };
+
+    function renderVervolgDagen(doeldatum) {
+      const dagen = Agenda.komendeOpenDagen(t.openingstijden, vensterVan, 14);
+      el('vervolg-dagen').innerHTML = `
+        <p>Rond <strong>${doeldatum}</strong> — kies een dag:</p>
+        <div class="keuze-grid">${dagen.map((iso) =>
+          `<button type="button" class="knop knop-secundair${iso === gekozenDatum ? ' gekozen' : ''}" data-vervolg-dag="${iso}">${datumLabel(iso)}</button>`).join('')
+          || '<em>Geen open dagen in deze periode.</em>'}</div>
+        <p>
+          <button type="button" class="knop knop-secundair knop-klein" id="vervolg-eerder" ${vensterVan <= morgen() ? 'disabled' : ''}>‹ eerder</button>
+          <button type="button" class="knop knop-secundair knop-klein" id="vervolg-later">later ›</button>
+        </p>`;
+      el('vervolg-dagen').querySelectorAll('button[data-vervolg-dag]').forEach((k) => {
+        k.addEventListener('click', () => {
+          gekozenDatum = k.dataset.vervolgDag;
+          renderVervolgDagen(doeldatum);
+          renderVervolgTijden();
+        });
+      });
+      el('vervolg-eerder').addEventListener('click', () => {
+        schuifVenster(-14);
+        gekozenDatum = null;
+        el('vervolg-tijden').innerHTML = '';
+        renderVervolgDagen(doeldatum);
+      });
+      el('vervolg-later').addEventListener('click', () => {
+        schuifVenster(14);
+        gekozenDatum = null;
+        el('vervolg-tijden').innerHTML = '';
+        renderVervolgDagen(doeldatum);
+      });
+    }
+
+    function renderVervolgTijden() {
+      const sloten = Agenda.sloten(t.openingstijden, t.slotDuur || 30, gekozenDatum,
+        OberPoesDb.afsprakenVoor(t.code), t.blokkades || [], t.capaciteit || 1);
+      el('vervolg-tijden').innerHTML = `
+        <p>Kies een tijd op ${datumLabel(gekozenDatum)}:</p>
+        <div class="keuze-grid">${sloten.map((s) =>
+          `<button type="button" class="knop knop-secundair" data-vervolg-tijd="${s.tijd}" ${s.vrij ? '' : 'disabled'}>${s.tijd}</button>`).join('')
+          || '<em>Op deze dag zijn geen tijden vrij.</em>'}</div>
+        <span class="fout" id="fout-vervolg-tijd" aria-live="polite"></span>`;
+      el('vervolg-tijden').querySelectorAll('button[data-vervolg-tijd]:not([disabled])').forEach((k) => {
+        k.addEventListener('click', () => legVervolgVast(k.dataset.vervolgTijd));
+      });
+    }
+
+    function legVervolgVast(tijd) {
+      const nieuw = OberPoesDb.maakAfspraak({
+        tenantCode: t.code, datum: gekozenDatum, tijd,
+        naam: bronAfspraak.naam, email: bronAfspraak.email,
+        postcode: bronAfspraak.postcode, huisnummer: bronAfspraak.huisnummer,
+        straat: bronAfspraak.straat, plaats: bronAfspraak.plaats,
+        extra: '', telefoon: bronAfspraak.telefoon,
+      });
+      if (!nieuw) {
+        el('fout-vervolg-tijd').textContent = 'Deze tijd is net bezet. Kies een andere tijd.';
+        renderVervolgTijden();
+        return;
+      }
+      OberPoesDb.zetKlantVervolgTermijn(klant.id, {
+        aantal: parseInt(el('vervolg-aantal').value, 10),
+        eenheid: el('vervolg-eenheid').value,
+      });
+      const mailTekst = Berichten.render(Berichten.voor(t, 'boeking'), {
+        naam: nieuw.naam, tenant: t.naam,
+        datum: datumLabel(nieuw.datum), tijd: nieuw.tijd,
+      });
+      const ics = Kalender.ics({
+        titel: `Afspraak bij ${t.naam}`,
+        locatie: `${t.straat} ${t.huisnummer}, ${t.plaats}`,
+        omschrijving: 'Vervolgafspraak',
+        datum: nieuw.datum, tijd: nieuw.tijd,
+        duurMinuten: t.slotDuur || 30, uid: nieuw.id,
+      });
+      el('vervolg-dagen').innerHTML = '';
+      el('vervolg-tijden').innerHTML = '';
+      el('vervolg-klaar').innerHTML = `
+        <div class="melding melding-goed" role="status">
+          Vervolgafspraak vastgelegd: <strong>${datumLabel(nieuw.datum)} om ${nieuw.tijd}</strong>.
+        </div>
+        <div class="melding melding-info">
+          <strong>Demo — bevestigingsmail:</strong><br>
+          <strong>Aan:</strong> ${nieuw.email}<br>
+          <strong>Onderwerp:</strong> Afspraakbevestiging — ${t.naam}<br><br>
+          ${Berichten.naarHtml(mailTekst)}<br><br>
+          Wilt u de afspraak wijzigen of annuleren? Gebruik dan
+          <a href="afspraak.html?id=${nieuw.id}" target="_blank">deze link</a>.<br>
+          <strong>Bijlage:</strong>
+          <a download="afspraak.ics" href="${Kalender.icsDataUrl(ics)}">📅 afspraak.ics</a>
+        </div>`;
+    }
+
+    el('knop-vervolg-zoek').addEventListener('click', () => {
+      const aantal = parseInt(el('vervolg-aantal').value, 10);
+      const eenheid = el('vervolg-eenheid').value;
+      if (!Number.isInteger(aantal) || aantal < 1) {
+        el('fout-vervolg').textContent = 'Vul een termijn in (getal van minimaal 1).';
+        return;
+      }
+      el('fout-vervolg').textContent = '';
+      const doeldatum = Agenda.datumPlus(bronAfspraak.datum, aantal, eenheid);
+      vensterVan = Agenda.vensterStart(doeldatum, new Date().toISOString().slice(0, 10));
+      gekozenDatum = null;
+      el('vervolg-tijden').innerHTML = '';
+      el('vervolg-klaar').innerHTML = '';
+      renderVervolgDagen(doeldatum);
+    });
   }
 
   // --- Factuurregels ---
